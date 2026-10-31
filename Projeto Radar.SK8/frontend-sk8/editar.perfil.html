@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Perfil - Stoke Community</title>
+    <style>
+        :root {
+            --verde-neon: #00ff55;
+            --fundo-escuro: #050505;
+            --fundo-card: #121212;
+            --borda: #222222;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--fundo-escuro); color: #ffffff; padding: 20px; display: flex; justify-content: center; }
+
+        .container { background-color: var(--fundo-card); border: 1px solid var(--borda); border-radius: 12px; padding: 30px; width: 100%; max-width: 600px; margin-top: 20px; }
+
+        h1 { color: var(--verde-neon); text-align: center; margin-bottom: 20px; font-weight: 900; letter-spacing: 1px; }
+        .voltar { color: #aaa; text-decoration: none; display: block; margin-bottom: 20px; font-weight: bold; }
+        .voltar:hover { color: var(--verde-neon); }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .full-width { grid-column: span 2; }
+        
+        @media (max-width: 500px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .full-width { grid-column: span 1; }
+        }
+
+        label { display: block; margin-bottom: 5px; color: #ccc; font-weight: bold; font-size: 0.9rem; }
+        input, select, textarea { width: 100%; padding: 12px; background-color: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; transition: 0.3s; }
+        input:focus, select:focus, textarea:focus { border-color: var(--verde-neon); }
+        textarea { resize: vertical; min-height: 80px; }
+
+        .btn-submit { width: 100%; background-color: var(--verde-neon); color: #000; border: none; padding: 15px; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-submit:hover { opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="index.html" class="voltar" id="btn-voltar">&larr; Voltar</a>
+        <h1>MEU MEDIA KIT</h1>
+
+        <form id="formEditar">
+            <p style="text-align:center; color:#888;" id="carregando">A buscar os teus dados... ⏳</p>
+            
+            <div id="campos-form" style="display: none;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Apelido / Vulgo</label>
+                        <input type="text" id="apelido">
+                    </div>
+                    <div class="form-group">
+                        <label>Cidade e Estado</label>
+                        <input type="text" id="cidade_estado">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Base</label>
+                        <select id="base">
+                            <option value="Goofy">Goofy</option>
+                            <option value="Regular">Regular</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Modalidade Principal</label>
+                        <input type="text" id="modalidade" placeholder="Ex: Street, Bowl, Downhill">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nível Atual</label>
+                        <select id="nivel_atual">
+                            <option value="Iniciante">Iniciante</option>
+                            <option value="Amador">Amador</option>
+                            <option value="Profissional">Profissional</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Instagram (@)</label>
+                        <input type="text" id="instagram_arroba" placeholder="Ex: stokecommunity">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tamanho do Shape</label>
+                        <input type="text" id="tamanho_shape" placeholder="Ex: 8.0, 8.25">
+                    </div>
+                    <div class="form-group">
+                        <label>Marca de Truck Favorita</label>
+                        <input type="text" id="marca_truck_favorita" placeholder="Ex: Independent">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Vídeo Destaque (URL do YouTube)</label>
+                        <input type="url" id="video_destaque" placeholder="Link para a tua melhor video part">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Biografia</label>
+                        <textarea id="biografia" placeholder="Fala um pouco sobre ti e a tua caminhada no skate..."></textarea>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Nova Foto de Perfil (deixa em branco para manter a atual)</label>
+                        <input type="file" id="foto_perfil" accept="image/*">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit">Guardar Alterações 🛹</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const API_URL = "http://192.168.1.6:3000"; // IP da rede
+        let fotoBase64Atual = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const usuarioString = localStorage.getItem('usuarioLogado');
+            
+            // Segurança: redireciona para login se não estiver autenticado
+            if (!usuarioString) {
+                alert("Precisas fazer login primeiro!");
+                window.location.href = "login.html";
+                return;
+            }
+
+            const usuario = JSON.parse(usuarioString);
+            
+            // Configurar botão voltar para retornar diretamente ao perfil
+            const btnVoltar = document.getElementById('btn-voltar');
+            btnVoltar.href = `perfil.html?id=${usuario.id}`;
+            btnVoltar.innerHTML = "&larr; Ver Meu Perfil";
+            
+            try {
+                const resposta = await fetch(`${API_URL}/skatistas/${usuario.id}`);
+                if (!resposta.ok) throw new Error('Erro ao buscar dados');
+                
+                const dados = await resposta.json();
+                
+                document.getElementById('apelido').value = dados.apelido || '';
+                document.getElementById('cidade_estado').value = dados.cidade_estado || '';
+                document.getElementById('base').value = dados.base || 'Goofy';
+                document.getElementById('modalidade').value = dados.modalidade || '';
+                document.getElementById('nivel_atual').value = dados.nivel_atual || 'Iniciante';
+                document.getElementById('instagram_arroba').value = dados.instagram_arroba || '';
+                document.getElementById('tamanho_shape').value = dados.tamanho_shape || '';
+                document.getElementById('marca_truck_favorita').value = dados.marca_truck_favorita || '';
+                document.getElementById('video_destaque').value = dados.video_destaque || '';
+                document.getElementById('biografia').value = dados.biografia || '';
+                
+                fotoBase64Atual = dados.foto_perfil; 
+
+                document.getElementById('carregando').style.display = 'none';
+                document.getElementById('campos-form').style.display = 'block';
+
+            } catch (erro) {
+                console.error(erro);
+                document.getElementById('carregando').innerText = '❌ Erro ao carregar o perfil.';
+            }
+        });
+
+        document.getElementById('formEditar').addEventListener('submit', async function(evento) {
+            evento.preventDefault();
+
+            const btn = document.querySelector('.btn-submit');
+            btn.innerText = "A guardar... ⏳";
+            btn.disabled = true;
+
+            const usuario = JSON.parse(localStorage.getItem('usuarioLogado'));
+            const inputFoto = document.getElementById('foto_perfil');
+            let fotoFinal = fotoBase64Atual;
+
+            if (inputFoto.files.length > 0) {
+                const arquivo = inputFoto.files[0];
+                fotoFinal = await converterParaBase64(arquivo);
+            }
+
+            const dadosAtualizados = {
+                apelido: document.getElementById('apelido').value,
+                cidade_estado: document.getElementById('cidade_estado').value,
+                base: document.getElementById('base').value,
+                modalidade: document.getElementById('modalidade').value,
+                nivel_atual: document.getElementById('nivel_atual').value,
+                instagram_arroba: document.getElementById('instagram_arroba').value,
+                tamanho_shape: document.getElementById('tamanho_shape').value,
+                marca_truck_favorita: document.getElementById('marca_truck_favorita').value,
+                video_destaque: document.getElementById('video_destaque').value,
+                biografia: document.getElementById('biografia').value,
+                foto_perfil: fotoFinal
+            };
+
+            try {
+                const resposta = await fetch(`${API_URL}/skatistas/${usuario.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dadosAtualizados)
+                });
+
+                if (resposta.ok) {
+                    usuario.apelido = dadosAtualizados.apelido;
+                    usuario.foto = dadosAtualizados.foto_perfil;
+                    localStorage.setItem('usuarioLogado', JSON.stringify(usuario));
+
+                    alert("✅ Media Kit atualizado com sucesso!");
+                    window.location.href = `perfil.html?id=${usuario.id}`; // Retorna ao perfil atualizado
+                } else {
+                    const resultado = await resposta.json();
+                    alert("❌ Erro: " + resultado.erro);
+                }
+            } catch (erro) {
+                console.error(erro);
+                alert("❌ Erro ao conectar com o servidor.");
+            }
+
+            btn.innerText = "Guardar Alterações 🛹";
+            btn.disabled = false;
+        });
+
+        function converterParaBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = erro => reject(erro);
+            });
+        }
+    </script>
+</body>
+</html>

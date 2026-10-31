@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instoke</title>
+    <style>
+        /* PALETA DE CORES INSTOKE */
+        :root {
+            --verde-neon: #00ff55;
+            --fundo-escuro: #050505;
+            --fundo-card: #121212;
+            --borda: #222222;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        body { 
+            background-color: var(--fundo-escuro); 
+            color: #ffffff; 
+        }
+
+        /* CABEÇALHO DO INDEX */
+        header {
+            display: flex; 
+            justify-content: flex-end; 
+            align-items: center;
+            padding: 20px 40px; 
+            border-bottom: 1px solid var(--borda);
+            position: sticky; 
+            top: 0;
+            background-color: var(--fundo-escuro);
+            z-index: 10;
+            min-height: 80px; 
+        }
+        
+        header h1 {
+            color: var(--verde-neon); 
+            font-size: 2rem; 
+            font-weight: 900; 
+            letter-spacing: 1px;
+            cursor: pointer;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+        }
+        
+        /* MENU HAMBÚRGUER */
+        .btn-hamburger {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .btn-hamburger:hover {
+            color: var(--verde-neon);
+        }
+
+        .menu-dropdown {
+            display: none; 
+            position: absolute;
+            top: 70px;
+            right: 40px;
+            background-color: var(--fundo-card);
+            border: 1px solid var(--borda);
+            border-radius: 12px;
+            padding: 20px;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.8);
+            min-width: 200px;
+            z-index: 20;
+        }
+
+        .menu-dropdown.ativo {
+            display: flex; 
+        }
+
+        /* AJUSTES DOS BOTÕES NO MENU DROPDOWN */
+        .link-btn {
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .btn-novo-atleta, .btn-secundario {
+            width: 100%; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.3s;
+            font-family: inherit;
+            text-align: center;
+        }
+
+        .btn-novo-atleta {
+            background-color: var(--verde-neon); 
+            color: #000;
+            border: none; 
+        }
+        
+        .btn-novo-atleta:hover { 
+            opacity: 0.8; 
+        }
+
+        .btn-secundario {
+            background-color: transparent; 
+            color: var(--verde-neon);
+            border: 1px solid var(--verde-neon); 
+        }
+
+        .btn-secundario:hover {
+            background-color: var(--verde-neon);
+            color: #000;
+        }
+
+        /* BARRA DE PESQUISA */
+        .area-pesquisa { 
+            display: flex;
+            justify-content: center;
+            margin: 40px 20px; 
+        }
+        
+        .input-pesquisa {
+            width: 100%; 
+            max-width: 600px; 
+            padding: 15px 20px;
+            background-color: #111; 
+            border: 1px solid #333; 
+            border-radius: 8px;
+            color: #fff; 
+            font-size: 1rem; 
+            outline: none;
+        }
+        
+        .input-pesquisa:focus { 
+            border-color: var(--verde-neon); 
+        }
+
+        /* ESTRUTURA DO FEED */
+        main { 
+            display: flex;
+            justify-content: center; 
+            padding: 0 20px 60px 20px; 
+        }
+        
+        .feed-grid {
+            display: flex; 
+            flex-direction: column; 
+            width: 100%;
+            max-width: 600px; 
+            gap: 40px; 
+        }
+
+        .card {
+            background-color: var(--fundo-card); 
+            border: 1px solid var(--borda);
+            border-radius: 12px; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column;
+            transition: border-color 0.3s;
+        }
+        
+        .card:hover { 
+            border-color: var(--verde-neon); 
+        }
+        
+        .card-header {
+            padding: 15px 20px;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid #222;
+        }
+
+        .nome-clicavel { 
+            font-size: 1.2rem; 
+            color: #fff; 
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .nome-clicavel:hover {
+            color: var(--verde-neon);
+            text-decoration: underline;
+        }
+
+        .badge-base {
+            background-color: var(--verde-neon); 
+            color: #000;
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 0.75rem; 
+            font-weight: bold;
+        }
+
+        .card-foto {
+            width: 100%; 
+            aspect-ratio: 4 / 5; 
+            background-color: #1a1a1a;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .card-foto img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            transition: transform 0.3s ease;
+        }
+
+        .card-foto:hover img {
+            transform: scale(1.02);
+        }
+        
+        .sem-foto { 
+            font-size: 4rem; 
+        }
+
+        .card-info { 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        
+        .local-arroba { 
+            color: #aaa; 
+            font-size: 0.9rem; 
+            margin-bottom: 15px; 
+            line-height: 1.5;
+        }
+
+        .local-arroba strong {
+            color: #fff;
+        }
+        
+        .bio { 
+            color: #ccc; 
+            font-size: 0.95rem; 
+            line-height: 1.4;
+            margin-bottom: 20px; 
+        }
+        
+        .card-footer {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+        }
+
+        .botoes-acao {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-curtir, .btn-comentar {
+            background: transparent; 
+            border: 1px solid var(--verde-neon);
+            color: var(--verde-neon); 
+            padding: 8px 15px; 
+            border-radius: 20px;
+            cursor: pointer; 
+            font-weight: bold; 
+            transition: 0.3s;
+        }
+        
+        .btn-curtir:hover, .btn-comentar:hover { 
+            background-color: var(--verde-neon); 
+            color: #000; 
+        }
+        
+        .curtidas-count { 
+            color: #888; 
+            font-size: 0.9rem; 
+            font-weight: bold;
+        }
+
+        /* SEÇÃO DE COMENTÁRIOS */
+        .comentarios-section {
+            display: none;
+            margin-top: 15px;
+            border-top: 1px solid var(--borda);
+            padding-top: 15px;
+        }
+
+        .lista-comentarios {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .comentario-item {
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .comentario-item strong {
+            color: #fff;
+            cursor: pointer;
+        }
+        
+        .comentario-item strong:hover {
+            color: var(--verde-neon);
+            text-decoration: underline;
+        }
+
+        .comentario-item span {
+            color: #ccc;
+        }
+
+        .form-comentario {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-comentario {
+            flex: 1;
+            padding: 10px 15px;
+            border-radius: 20px;
+            border: 1px solid #333;
+            background: #111;
+            color: #fff;
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+        .input-comentario:focus {
+            border-color: var(--verde-neon);
+        }
+
+        .btn-enviar-comentario {
+            background: transparent;
+            color: var(--verde-neon);
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0 10px;
+            transition: 0.2s;
+        }
+
+        .btn-enviar-comentario:hover {
+            color: #fff;
+        }
+
+        .msg-carregando { 
+            text-align: center; 
+            color: #888; 
+            font-size: 1.1rem; 
+            padding: 40px; 
+            width: 100%;
+        }
+
+        /* Scrollbar customizada para os comentários */
+        .lista-comentarios::-webkit-scrollbar {
+            width: 5px;
+        }
+        .lista-comentarios::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 onclick="window.location.href='/'">Instoke</h1>
+        
+        <div>
+            <button class="btn-hamburger" onclick="toggleMenu()">☰</button>
+            <div class="menu-dropdown" id="menu-navegacao">
+                <p style="color: #888; font-size: 0.9rem; text-align: center;">A carregar menu... ⏳</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="area-pesquisa">
+        <input type="text" id="campo-pesquisa" class="input-pesquisa" placeholder="Pesquisar por nome, cidade, @ ou legenda...">
+    </div>
+
+    <main>
+        <div id="feed" class="feed-grid">
+            <p class="msg-carregando">A CARREGAR O FEED... ⏳</p>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = "http://192.168.1.6:3000"; // IP fixo do seu servidor
+
+        // ==========================================
+        // CONTROLE DO MENU HAMBÚRGUER
+        // ==========================================
+        function toggleMenu() {
+            const menu = document.getElementById('menu-navegacao');
+            menu.classList.toggle('ativo');
+        }
+
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('menu-navegacao');
+            const hamburger = document.querySelector('.btn-hamburger');
+            if (!hamburger.contains(event.target) && !menu.contains(event.target)) {
+                menu.classList.remove('ativo');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            verificarSessao();
+            carregarFeed();
+        });
+
+        // ==========================================
+        // SISTEMA DE SESSÃO
+        // ==========================================
+        function verificarSessao() {
+            const menuNav = document.getElementById('menu-navegacao');
+            const usuarioString = localStorage.getItem('usuarioLogado');
+
+            let botoesHtml = `
+                <a href="mapa.html" class="link-btn">
+                    <button class="btn-secundario">🗺️ Mapa de Picos</button>
+                </a>
+            `;
+
+            if (usuarioString) {
+                const usuario = JSON.parse(usuarioString);
+                botoesHtml += `
+                    <a href="midia.html" class="link-btn">
+                        <button class="btn-secundario">+ Mídia</button>
+                    </a>
+                    <a href="perfil.html?id=${usuario.id}" class="link-btn">
+                        <button class="btn-secundario" style="color: #fff; border-color: #555;">🛹 ${usuario.apelido || usuario.nome || 'Meu Perfil'}</button>
+                    </a>
+                    <button class="btn-secundario" style="border-color: #ff3333; color: #ff3333;" onclick="fazerLogout()">Sair</button>
+                `;
+            } else {
+                botoesHtml += `
+                    <a href="login.html" class="link-btn">
+                        <button class="btn-secundario">Entrar</button>
+                    </a>
+                    <a href="registro.html" class="link-btn">
+                        <button class="btn-novo-atleta">+ Novo Atleta</button>
+                    </a>
+                `;
+            }
+
+            menuNav.innerHTML = botoesHtml;
+        }
+
+        function fazerLogout() {
+            if(confirm("Tens a certeza que queres sair do Instoke?")) {
+                localStorage.removeItem('usuarioLogado');
+                localStorage.removeItem('tokenInstoke'); // Tira o token também na hora de sair!
+                window.location.reload(); 
+            }
+        }
+
+        function removerAcentos(texto) {
+            if (!texto) return '';
+            return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+
+        function obterThumbnailVideo(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            if (match && match[2].length === 11) {
+                return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`;
+            }
+            return null; 
+        }
+
+        // ==========================================
+        // ALIMENTAÇÃO DO FEED
+        // ==========================================
+        async function carregarFeed() {
+            const container = document.getElementById('feed');
+
+            try {
+                const resposta = await fetch(`${API_URL}/feed`);
+                if (!resposta.ok) throw new Error('Erro de conexão com o servidor');
+                
+                const posts = await resposta.json();
+                container.innerHTML = ''; 
+
+                if (posts.length === 0) {
+                    container.innerHTML = '<p class="msg-carregando">Nenhuma mídia postada no Instoke ainda. Seja o primeiro!</p>';
+                    return;
+                }
+
+                posts.forEach(post => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+
+                    const textoPesquisavel = removerAcentos(
+                        `${post.apelido || ''} ${post.nome_completo || ''} ${post.cidade_estado || ''} ${post.legenda || ''}`
+                    ).toLowerCase();
+                    
+                    card.setAttribute('data-busca', textoPesquisavel);
+
+                    let midiaHtml = '<div class="sem-foto">🛹</div>';
+                    if (post.tipo === 'foto' && post.arquivo_base64) {
+                        const imgSrc = post.arquivo_base64.startsWith('data:image') 
+                                    ? post.arquivo_base64 
+                                    : `data:image/jpeg;base64,${post.arquivo_base64}`;
+                        midiaHtml = `<img src="${imgSrc}" alt="Post de ${post.apelido || 'Atleta'}">`;
+                  } else if (post.tipo === 'video' && post.url_video) {
+                        const thumb = obterThumbnailVideo(post.url_video);
+                        
+                        if (thumb) {
+                            midiaHtml = `
+                                <a href="${post.url_video}" target="_blank" style="position:relative; display:block; width:100%; height:100%; background:#000;">
+                                    <img src="${thumb}" alt="Capa do Vídeo" style="width:100%; height:100%; object-fit:cover; opacity:0.8; transition:0.3s;">
+                                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.7); border: 2px solid var(--verde-neon); border-radius:50%; width:60px; height:60px; display:flex; align-items:center; justify-content:center; color:var(--verde-neon); font-size:24px; padding-left: 4px; box-shadow: 0 0 15px rgba(0,255,85,0.5);">
+                                        ▶
+                                    </div>
+                                </a>`;
+                        } else {
+                            midiaHtml = `
+                                <a href="${post.url_video}" target="_blank" style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; text-decoration:none; color:var(--verde-neon); font-size:1.2rem; background:linear-gradient(45deg, #111, #1a1a1a);">
+                                    <div style="background:rgba(0,255,85,0.1); padding:20px; border-radius:50%; margin-bottom:15px; font-size: 2.5rem;">
+                                        🔗
+                                    </div>
+                                    <strong style="text-align:center;">Assistir Link Externo</strong>
+                                    <span style="font-size:0.85rem; color:#888; margin-top:10px;">(Abre numa nova aba)</span>
+                                </a>`;
+                        }
+                    }
+
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <h2 class="nome-clicavel" onclick="window.location.href='perfil.html?id=${post.skatista_id}'">
+                                ${post.apelido || post.nome_completo}
+                            </h2>
+                            <span class="badge-base">${post.base || 'N/A'}</span>
+                        </div>
+                        <div class="card-foto">
+                            ${midiaHtml}
+                        </div>
+                        <div class="card-info">
+                            <div class="card-footer" style="margin-bottom: 15px;">
+                                <div class="botoes-acao">
+                                    <button class="btn-curtir" onclick="darLike(${post.midia_id}, this)">⚡ Dar Props</button>
+                                    <button class="btn-comentar" onclick="toggleComentarios(${post.midia_id})">💬 Comentar</button>
+                                </div>
+                                <span class="curtidas-count">${post.curtidas || 0} props</span>
+                            </div>
+                            
+                            <div class="bio" style="margin-bottom: 10px;">
+                                <strong style="color: #fff; cursor: pointer;" onclick="window.location.href='perfil.html?id=${post.skatista_id}'">${post.apelido || post.nome_completo}:</strong> 
+                                <span style="color: #ccc;">${post.legenda || ''}</span>
+                            </div>
+
+                            <div class="local-arroba" style="font-size: 0.8rem;">
+                                📍 ${post.cidade_estado || 'Local desconhecido'} | 📅 ${new Date(post.data_publicacao).toLocaleDateString('pt-BR')}
+                            </div>
+
+                            <!-- SEÇÃO DE COMENTÁRIOS (Oculta por padrão) -->
+                            <div class="comentarios-section" id="secao-comentarios-${post.midia_id}">
+                                <div class="lista-comentarios" id="lista-comentarios-${post.midia_id}">
+                                    <p style="color: #555; text-align: center; font-size: 0.8rem;">A carregar...</p>
+                                </div>
+                                <form class="form-comentario" onsubmit="enviarComentario(event, ${post.midia_id})">
+                                    <input type="text" id="input-comentario-${post.midia_id}" class="input-comentario" placeholder="Adicione um comentário..." required autocomplete="off">
+                                    <button type="submit" class="btn-enviar-comentario">Publicar</button>
+                                </form>
+                            </div>
+
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (erro) {
+                console.error('Erro:', erro);
+                container.innerHTML = '<p class="msg-carregando" style="color: var(--verde-neon);">Erro: O servidor Node está rodando?</p>';
+            }
+        }
+
+        // ==========================================
+        // FUNÇÃO DE CURTIR (Agora com Token)
+        // ==========================================
+        async function darLike(idMidia, botaoElemento) {
+            const token = localStorage.getItem('tokenInstoke');
+            
+            if (!token) {
+                alert("Você precisa fazer login para dar props!");
+                window.location.href = "login.html";
+                return;
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/midias/${idMidia}/curtir`, { 
+                    method: 'PUT',
+                    headers: {
+                        'authorization': token // Enviando a pulseira VIP
+                    }
+                });
+                
+                if (resposta.ok) {
+                    const footer = botaoElemento.closest('.card-footer');
+                    const spanCurtidas = footer.querySelector('.curtidas-count');
+                    
+                    let curtidasAtuais = parseInt(spanCurtidas.innerText);
+                    spanCurtidas.innerText = `${curtidasAtuais + 1} props`;
+                    
+                    botaoElemento.style.backgroundColor = 'var(--verde-neon)';
+                    botaoElemento.style.color = '#000';
+                    botaoElemento.innerText = '⚡ Props Dados!';
+                    botaoElemento.disabled = true;
+                } else {
+                    alert("Erro ao curtir. Sua sessão pode ter expirado, faça login novamente.");
+                }
+            } catch (erro) {
+                console.error('Erro ao processar:', erro);
+            }
+        }
+
+        // ==========================================
+        // SISTEMA DE COMENTÁRIOS
+        // ==========================================
+
+        function toggleComentarios(midiaId) {
+            const secao = document.getElementById(`secao-comentarios-${midiaId}`);
+            
+            if (secao.style.display === 'block') {
+                secao.style.display = 'none'; 
+            } else {
+                secao.style.display = 'block'; 
+                carregarComentarios(midiaId); 
+                
+                setTimeout(() => {
+                    document.getElementById(`input-comentario-${midiaId}`).focus();
+                }, 100);
+            }
+        }
+
+        async function carregarComentarios(midiaId) {
+            const listaDiv = document.getElementById(`lista-comentarios-${midiaId}`);
+            listaDiv.innerHTML = '<p style="color: #555; text-align: center; font-size: 0.8rem;">A carregar comentários... ⏳</p>';
+
+            try {
+                const resposta = await fetch(`${API_URL}/midias/${midiaId}/comentarios`);
+                const comentarios = await resposta.json();
+
+                if (comentarios.length === 0) {
+                    listaDiv.innerHTML = '<p style="color: #555; font-size: 0.85rem;">Seja o primeiro a comentar!</p>';
+                    return;
+                }
+
+                listaDiv.innerHTML = ''; 
+                
+                comentarios.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = 'comentario-item';
+                    div.innerHTML = `
+                        <strong onclick="window.location.href='perfil.html?id=${c.skatista_id || ''}'">${c.apelido || c.nome_completo}:</strong> 
+                        <span>${c.texto}</span>
+                    `;
+                    listaDiv.appendChild(div);
+                });
+
+                listaDiv.scrollTop = listaDiv.scrollHeight;
+
+            } catch (erro) {
+                console.error("Erro ao carregar comentários:", erro);
+                listaDiv.innerHTML = '<p style="color: #ff3333; font-size: 0.85rem;">Erro ao carregar comentários.</p>';
+            }
+        }
+
+        // Enviar novo comentário (Agora com Token e sem Skatista_ID no body)
+        async function enviarComentario(evento, midiaId) {
+            evento.preventDefault(); 
+
+            const token = localStorage.getItem('tokenInstoke');
+            
+            if (!token) {
+                alert("Você precisa fazer login para comentar!");
+                window.location.href = "login.html";
+                return;
+            }
+
+            const inputField = document.getElementById(`input-comentario-${midiaId}`);
+            const texto = inputField.value.trim();
+
+            if (!texto) return;
+
+            try {
+                const resposta = await fetch(`${API_URL}/midias/${midiaId}/comentarios`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'authorization': token // Enviando a pulseira VIP
+                    },
+                    // Não precisa mais enviar o skatista_id, o backend descobre pelo token!
+                    body: JSON.stringify({
+                        texto: texto
+                    })
+                });
+
+                if (resposta.ok) {
+                    inputField.value = ''; 
+                    carregarComentarios(midiaId); 
+                } else {
+                    alert("Erro ao enviar o comentário. Sua sessão pode ter expirado.");
+                }
+            } catch (erro) {
+                console.error("Erro ao enviar comentário:", erro);
+            }
+        }
+
+        // Barra de pesquisa
+        document.getElementById('campo-pesquisa').addEventListener('input', function(evento) {
+            const textoPesquisado = removerAcentos(evento.target.value).toLowerCase().trim();
+            const todosOsCards = document.querySelectorAll('.card');
+            let encontrouAlguem = false;
+
+            todosOsCards.forEach(card => {
+                const textoOcultoDoCard = card.getAttribute('data-busca');
+
+                if (textoOcultoDoCard && textoOcultoDoCard.includes(textoPesquisado)) {
+                    card.style.display = 'flex';
+                    encontrouAlguem = true;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            let mensagemErro = document.getElementById('erro-pesquisa');
+            if (!encontrouAlguem && textoPesquisado !== '') {
+                if (!mensagemErro) {
+                    mensagemErro = document.createElement('p');
+                    mensagemErro.id = 'erro-pesquisa';
+                    mensagemErro.className = 'msg-carregando';
+                    mensagemErro.innerText = 'Nenhum post encontrado na pesquisa...';
+                    document.getElementById('feed').appendChild(mensagemErro);
+                }
+            } else if (mensagemErro) {
+                mensagemErro.remove();
+            }
+        });
+    </script>
+</body>
+</html>

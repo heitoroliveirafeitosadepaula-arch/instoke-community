@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instoke - Nova Mídia</title>
+    <style>
+        /* PALETA DE CORES INSTOKE */
+        :root {
+            --verde-neon: #00ff55;
+            --fundo-escuro: #050505;
+            --fundo-card: #121212;
+            --borda: #222222;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        body { 
+            background-color: var(--fundo-escuro); 
+            color: #ffffff; 
+        }
+
+        /* CABEÇALHO PADRÃO INSTOKE */
+        header {
+            display: flex; 
+            justify-content: flex-start; 
+            align-items: center;
+            padding: 20px 40px; 
+            border-bottom: 1px solid var(--borda);
+            background-color: var(--fundo-escuro);
+            position: sticky; 
+            top: 0;
+            z-index: 10;
+            min-height: 80px;
+        }
+        
+        header h1 {
+            color: var(--verde-neon); 
+            font-size: 1.5rem; 
+            font-weight: 900; 
+            letter-spacing: 1px;
+            margin: 0;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .btn-voltar {
+            background: transparent; 
+            color: #aaa;
+            border: 1px solid #aaa; 
+            padding: 8px 20px; 
+            border-radius: 20px;
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.3s;
+            text-decoration: none;
+            z-index: 20;
+        }
+
+        .btn-voltar:hover {
+            border-color: var(--verde-neon);
+            color: var(--verde-neon);
+        }
+
+        /* CONTAINER DO FORMULÁRIO */
+        main {
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .form-card {
+            background-color: var(--fundo-card);
+            border: 1px solid var(--borda);
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .form-card h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #fff;
+            font-size: 1.8rem;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        /* INPUTS E SELECTS */
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            background-color: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, select:focus, textarea:focus {
+            border-color: var(--verde-neon);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* SELEÇÃO DO TIPO DE MÍDIA (TABS) */
+        .tipo-midia-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn-tipo {
+            flex: 1;
+            padding: 10px;
+            background-color: #111;
+            border: 1px solid #333;
+            color: #888;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .btn-tipo.ativo {
+            background-color: rgba(0, 255, 85, 0.1);
+            border-color: var(--verde-neon);
+            color: var(--verde-neon);
+        }
+
+        /* UPLOAD DE ARQUIVO CUSTOMIZADO */
+        .file-upload-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-upload-wrapper input[type="file"] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            height: 100%;
+        }
+
+        .btn-upload-falso {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #1a1a1a;
+            border: 1px dashed #555;
+            border-radius: 8px;
+            text-align: center;
+            color: #aaa;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .file-upload-wrapper:hover .btn-upload-falso {
+            border-color: var(--verde-neon);
+            color: var(--verde-neon);
+        }
+
+        .preview-imagem {
+            max-width: 100%;
+            margin-top: 15px;
+            border-radius: 8px;
+            display: none;
+            border: 1px solid #333;
+        }
+
+        /* BOTÃO DE SUBMIT */
+        .btn-submit {
+            width: 100%;
+            background-color: var(--verde-neon);
+            color: #000;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            opacity: 0.8;
+        }
+
+        /* MENSAGEM DO SISTEMA */
+        #mensagem-sistema {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            display: none;
+        }
+
+        /* CARD DO USUÁRIO LOGADO */
+        .user-badge {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .user-badge img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--verde-neon);
+        }
+
+        .user-badge .placeholder-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            border: 2px solid var(--verde-neon);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Instoke</h1>
+        <a href="index.html" class="btn-voltar">← Voltar pro Feed</a>
+    </header>
+
+    <main>
+        <div class="form-card">
+            <h2>Dropar Nova Mídia</h2>
+            
+            <form id="form-midia">
+                
+                <!-- CARD MOSTRANDO QUEM ESTÁ POSTANDO -->
+                <div class="user-badge" id="info-usuario-postando">
+                    <p style="color: #aaa;">A carregar perfil... ⏳</p>
+                </div>
+                <!-- ID Oculto do Skatista logado -->
+                <input type="hidden" id="skatista_id">
+
+                <!-- TABS: FOTO OU VÍDEO -->
+                <div class="form-group">
+                    <label>Tipo de conteúdo</label>
+                    <div class="tipo-midia-container">
+                        <button type="button" id="btn-foto" class="btn-tipo ativo" onclick="mudarAba('foto')">📷 Postar Foto</button>
+                        <button type="button" id="btn-video" class="btn-tipo" onclick="mudarAba('video')">🎬 Link de Vídeo</button>
+                    </div>
+                </div>
+
+                <!-- CAMPO DE FOTO -->
+                <div id="area-foto" class="form-group">
+                    <label>Escolher ficheiro</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="input-foto" accept="image/*">
+                        <div class="btn-upload-falso" id="texto-upload">Clique para selecionar uma foto (JPG, PNG)</div>
+                    </div>
+                    <img id="preview" class="preview-imagem" alt="Preview da imagem">
+                    <!-- Campo oculto para guardar o Base64 -->
+                    <input type="hidden" id="foto_base64">
+                </div>
+
+                <!-- CAMPO DE VÍDEO (Escondido por padrão) -->
+                <div id="area-video" class="form-group" style="display: none;">
+                    <label for="input-video">Link do Vídeo (YouTube, Instagram, etc)</label>
+                    <input type="text" id="input-video" placeholder="Cole a URL do vídeo aqui...">
+                </div>
+
+                <!-- LEGENDA -->
+                <div class="form-group">
+                    <label for="legenda">Legenda / Descrição</label>
+                    <textarea id="legenda" placeholder="Fale um pouco sobre esse clique ou manobra..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit">Publicar no Instoke ⚡</button>
+                <div id="mensagem-sistema"></div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        // CONFIGURAÇÃO DA API
+        const API_URL = "http://192.168.1.6:3000";
+
+        // 1. VERIFICAR LOGIN AO ABRIR A PÁGINA
+        document.addEventListener('DOMContentLoaded', () => {
+            const usuarioString = localStorage.getItem('usuarioLogado');
+            const token = localStorage.getItem('tokenInstoke');
+            
+            if (!usuarioString || !token) {
+                alert("Precisas fazer login primeiro para dropar uma mídia!");
+                window.location.href = "login.html";
+                return;
+            }
+
+            const usuario = JSON.parse(usuarioString);
+            document.getElementById('skatista_id').value = usuario.id;
+
+            const infoUsuario = document.getElementById('info-usuario-postando');
+            let imgAvatar = '<div class="placeholder-img">🛹</div>';
+            
+            if (usuario.foto) {
+                const imgSrc = usuario.foto.startsWith('data:image') ? usuario.foto : `data:image/jpeg;base64,${usuario.foto}`;
+                imgAvatar = `<img src="${imgSrc}" alt="Avatar">`;
+            }
+
+            infoUsuario.innerHTML = `
+                ${imgAvatar}
+                <div>
+                    <span style="color: #aaa; font-size: 0.8rem;">A postar no Instoke como:</span><br>
+                    <strong style="color: #fff; font-size: 1.1rem;">${usuario.apelido || usuario.nome || 'Skatista'}</strong>
+                </div>
+            `;
+        });
+
+        // 2. ALTERNAR ENTRE FOTO E VÍDEO
+        function mudarAba(tipo) {
+            const btnFoto = document.getElementById('btn-foto');
+            const btnVideo = document.getElementById('btn-video');
+            const areaFoto = document.getElementById('area-foto');
+            const areaVideo = document.getElementById('area-video');
+
+            if (tipo === 'foto') {
+                btnFoto.classList.add('ativo');
+                btnVideo.classList.remove('ativo');
+                areaFoto.style.display = 'block';
+                areaVideo.style.display = 'none';
+                document.getElementById('input-video').value = ''; 
+            } else {
+                btnVideo.classList.add('ativo');
+                btnFoto.classList.remove('ativo');
+                areaVideo.style.display = 'block';
+                areaFoto.style.display = 'none';
+                document.getElementById('input-foto').value = ''; 
+                document.getElementById('foto_base64').value = '';
+                document.getElementById('preview').style.display = 'none';
+                document.getElementById('texto-upload').textContent = 'Clique para selecionar uma foto (JPG, PNG)';
+            }
+        }
+
+        // 3. CONVERTER FOTO PARA BASE64 E MOSTRAR PREVIEW
+        document.getElementById('input-foto').addEventListener('change', function(evento) {
+            const arquivo = evento.target.files[0];
+            if (arquivo) {
+                document.getElementById('texto-upload').textContent = arquivo.name; 
+                
+                const leitor = new FileReader();
+                leitor.onload = function(e) {
+                    const stringBase64 = e.target.result;
+                    document.getElementById('foto_base64').value = stringBase64;
+                    
+                    const preview = document.getElementById('preview');
+                    preview.src = stringBase64;
+                    preview.style.display = 'block';
+                }
+                leitor.readAsDataURL(arquivo);
+            }
+        });
+
+        // 4. ENVIAR OS DADOS (SUBMIT)
+        document.getElementById('form-midia').addEventListener('submit', async function(evento) {
+            evento.preventDefault(); 
+            
+            const btnSubmit = document.querySelector('.btn-submit');
+            btnSubmit.innerText = 'A processar...';
+            btnSubmit.disabled = true;
+
+            const idSkatistaLogado = document.getElementById('skatista_id').value;
+            const token = localStorage.getItem('tokenInstoke');
+
+            const dadosMidia = {
+                skatista_id: idSkatistaLogado,
+                legenda: document.getElementById('legenda').value,
+                tipo: document.getElementById('btn-foto').classList.contains('ativo') ? 'foto' : 'video',
+                arquivo_base64: document.getElementById('foto_base64').value,
+                url_video: document.getElementById('input-video').value
+            };
+
+            if (dadosMidia.tipo === 'foto' && !dadosMidia.arquivo_base64) {
+                mostrarMensagem('Selecione uma foto antes de publicar!', '#ff4500');
+                btnSubmit.innerText = 'Publicar no Instoke ⚡';
+                btnSubmit.disabled = false;
+                return;
+            }
+            if (dadosMidia.tipo === 'video' && !dadosMidia.url_video) {
+                mostrarMensagem('Insira o link do vídeo antes de publicar!', '#ff4500');
+                btnSubmit.innerText = 'Publicar no Instoke ⚡';
+                btnSubmit.disabled = false;
+                return;
+            }
+
+            try {
+                // CORRIGIDO: Enviando o token puro no cabeçalho 'authorization'
+                const resposta = await fetch(`${API_URL}/midias`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'authorization': token 
+                    },
+                    body: JSON.stringify(dadosMidia)
+                });
+
+                const resultado = await resposta.json();
+
+                if (resposta.ok) {
+                    mostrarMensagem('Mídia adicionada com sucesso! 🛹', 'var(--verde-neon)');
+                    document.getElementById('form-midia').reset();
+                    document.getElementById('preview').style.display = 'none';
+                    document.getElementById('texto-upload').textContent = 'Clique para selecionar uma foto (JPG, PNG)';
+                    
+                    setTimeout(() => window.location.href = 'index.html', 2000);
+                } else {
+                    throw new Error(resultado.erro || 'Falha ao publicar mídia');
+                }
+            } catch (erro) {
+                console.error(erro);
+                mostrarMensagem('Erro: ' + erro.message, '#ff4500');
+            } finally {
+                btnSubmit.innerText = 'Publicar no Instoke ⚡';
+                btnSubmit.disabled = false;
+            }
+        });
+
+        function mostrarMensagem(texto, cor) {
+            const div = document.getElementById('mensagem-sistema');
+            div.innerText = texto;
+            div.style.color = cor;
+            div.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

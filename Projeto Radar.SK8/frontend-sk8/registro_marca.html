@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radar.SK8 | Registo de Marcas e Parceiros</title>
+    <style>
+        /* TEMA ESCURO - IDENTIDADE RADAR.SK8 */
+        body { background-color: #121212; color: #ffffff; font-family: sans-serif; padding: 20px; margin: 0; }
+        
+        /* Navbar simples */
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #333; margin-bottom: 30px; }
+        .navbar-brand { font-size: 24px; font-weight: bold; color: #00ff88; text-decoration: none; font-family: 'Arial Black', sans-serif; }
+        .btn-voltar { color: #aaa; text-decoration: none; font-weight: bold; }
+        .btn-voltar:hover { color: #fff; }
+
+        .container { max-width: 600px; margin: 0 auto; background-color: #1e1e1e; padding: 30px; border-top: 6px solid #ff0088; /* Cor diferente (Rosa/Magenta) para diferenciar a área de marcas */ border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .section-title { color: #ff0088; margin-top: 30px; margin-bottom: 15px; font-size: 1.2em; border-bottom: 1px solid #333; padding-bottom: 5px; text-transform: uppercase; }
+        
+        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; background-color: #2a2a2a; color: #fff; border: 1px solid #333; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #ff0088; }
+        textarea { resize: vertical; }
+        
+        input[type="file"] { padding: 10px; background-color: #222; border: 1px dashed #555; color: #aaa; cursor: pointer; }
+        input[type="file"]:hover { border-color: #ff0088; }
+        
+        button { width: 100%; padding: 15px; margin-top: 20px; background-color: #ff0088; color: #ffffff; border: none; font-weight: bold; font-size: 1.1em; cursor: pointer; text-transform: uppercase; border-radius: 6px; transition: background-color 0.2s; }
+        button:hover { background-color: #cc006d; }
+        
+        .mensagem { text-align: center; margin-top: 20px; font-weight: bold; }
+        .sucesso { color: #ff0088; }
+        .erro { color: #ff4444; }
+    </style>
+</head>
+<body>
+
+    <div style="max-width: 600px; margin: 0 auto;">
+        <div class="navbar">
+            <a href="index.html" class="navbar-brand">RADAR.SK8</a>
+            <a href="index.html" class="btn-voltar">← Voltar ao Feed</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 style="text-align: center; text-transform: uppercase; letter-spacing: 2px; color: #fff;">ECOSSISTEMA DE MARCAS 🤝</h1>
+        <p style="text-align: center; color: #aaa; font-size: 0.9em; margin-bottom: 30px;">Coloque a sua marca no radar dos melhores talentos da cena.</p>
+        
+        <form id="form-marca">
+            <div class="section-title">Dados do Negócio</div>
+            
+            <label for="logo_marca" style="font-size: 0.9em; color: #aaa; margin-bottom: 5px; display: block;">Logotipo da Marca (Upload Base64):</label>
+            <input type="file" id="logo_marca" accept="image/*" required>
+            
+            <input type="text" id="nome_marca" required placeholder="Nome Oficial da Marca / Loja">
+            
+            <select id="segmento" required>
+                <option value="" disabled selected>Qual o principal segmento?</option>
+                <option value="Skateshop">Skateshop (Retalho)</option>
+                <option value="Shapes/Decks">Shapes / Decks</option>
+                <option value="Trucks/Rodas/Rolamentos">Trucks / Rodas / Rolamentos</option>
+                <option value="Streetwear">Streetwear / Vestuário</option>
+                <option value="Tênis/Footwear">Ténis / Footwear</option>
+                <option value="Outros">Outros</option>
+            </select>
+
+            <div class="section-title">Presença Digital & Contacto</div>
+            <input type="text" id="instagram_marca" placeholder="@ do Instagram da Marca" required>
+            <input type="url" id="site_url" placeholder="Site ou Loja Virtual (https://...)">
+            <input type="email" id="email_contato" placeholder="E-mail profissional para parcerias" required>
+
+            <div class="section-title">A Proposta</div>
+            <textarea id="descricao_marca" rows="4" placeholder="Conta-nos a missão da marca e porque querem fazer parte da comunidade..." required></textarea>
+
+            <div style="margin-top: 15px; margin-bottom: 25px; font-size: 0.9em; color: #aaa; display: flex; align-items: flex-start; gap: 10px;">
+    <!-- O "required" obriga o utilizador a marcar a caixa para conseguir enviar -->
+    <input type="checkbox" id="termos_uso" required style="width: auto; margin-top: 2px; cursor: pointer; transform: scale(1.2);">
+    
+    <label for="termos_uso" style="cursor: pointer; line-height: 1.4;">
+        Li e concordo com os <a href="termos.html" target="_blank" style="color: #00ff88; text-decoration: none; font-weight: bold;">Termos de Uso</a>. Confirmo que não farei upload de conteúdo impróprio, explícito (NSFW) ou ofensivo, sob pena de banimento imediato da plataforma.
+    </label>
+</div>
+
+            <button type="submit">Registar Marca no Ecossistema</button>
+        </form>
+        
+        <div id="mensagem-retorno" class="mensagem"></div>
+    </div>
+
+    <script>
+        document.getElementById('form-marca').addEventListener('submit', function(evento) {
+            evento.preventDefault();
+            
+            const btnSubmit = document.querySelector('button[type="submit"]');
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = 'A PROCESSAR... ⏳';
+
+            const dadosMarca = {
+                nome_marca: document.getElementById('nome_marca').value,
+                segmento: document.getElementById('segmento').value,
+                instagram_marca: document.getElementById('instagram_marca').value,
+                site_url: document.getElementById('site_url').value,
+                email_contato: document.getElementById('email_contato').value,
+                descricao_marca: document.getElementById('descricao_marca').value,
+                logo_marca: null 
+            };
+
+            const campoLogo = document.getElementById('logo_marca');
+
+            const dispararParaBackend = () => {
+                // Futura rota /marcas que vamos criar no Node.js
+                fetch('http://localhost:3000/marcas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dadosMarca)
+                })
+                .then(res => res.json())
+                .then(retorno => {
+                    const msg = document.getElementById('mensagem-retorno');
+                    if (retorno.erro) {
+                        msg.innerHTML = 'Erro: ' + retorno.erro;
+                        msg.className = 'mensagem erro';
+                    } else {
+                        msg.innerHTML = '🤝 ' + (retorno.mensagem || 'Marca registada com sucesso!');
+                        msg.className = 'mensagem sucesso';
+                        document.getElementById('form-marca').reset();
+                    }
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = 'Registar Marca no Ecossistema';
+                })
+                .catch(erro => {
+                    console.error('Erro:', erro);
+                    const msg = document.getElementById('mensagem-retorno');
+                    msg.innerHTML = 'O formulário está pronto! Agora só falta criarmos a tabela e a rota /marcas no backend.';
+                    msg.className = 'mensagem erro'; // Usei isto para te avisar visualmente que o front está pronto, mas falta o back!
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = 'Registar Marca no Ecossistema';
+                });
+            };
+
+            // MÁGICA DO BASE64
+            if (campoLogo.files.length > 0) {
+                const leitor = new FileReader();
+                leitor.onload = function(e) {
+                    dadosMarca.logo_marca = e.target.result;
+                    dispararParaBackend();
+                };
+                leitor.readAsDataURL(campoLogo.files[0]);
+            }
+        });
+    </script>
+</body>
+</html>

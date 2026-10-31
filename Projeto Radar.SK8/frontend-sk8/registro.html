@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novo Atleta - Stoke Community</title>
+    <style>
+        :root {
+            --verde-neon: #00ff55;
+            --fundo-escuro: #050505;
+            --fundo-card: #121212;
+            --borda: #222222;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--fundo-escuro); color: #ffffff; padding: 20px; display: flex; justify-content: center; }
+
+        .container { background-color: var(--fundo-card); border: 1px solid var(--borda); border-radius: 12px; padding: 30px; width: 100%; max-width: 500px; margin-top: 20px; }
+        
+        h1 { color: var(--verde-neon); text-align: center; margin-bottom: 20px; font-weight: 900; letter-spacing: 1px; }
+        .voltar { color: #aaa; text-decoration: none; display: block; margin-bottom: 20px; font-weight: bold; }
+        .voltar:hover { color: var(--verde-neon); }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #ccc; font-weight: bold; font-size: 0.9rem; }
+        
+        input, select, textarea { width: 100%; padding: 12px; background-color: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; transition: 0.3s; }
+        input:focus, select:focus, textarea:focus { border-color: var(--verde-neon); }
+
+        /* ESTILO DOS TERMOS DE USO */
+        .termos-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+        .termos-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--verde-neon);
+            cursor: pointer;
+        }
+        .termos-group a {
+            color: var(--verde-neon);
+            text-decoration: none;
+        }
+        .termos-group a:hover {
+            text-decoration: underline;
+        }
+
+        .btn-submit { width: 100%; background-color: var(--verde-neon); color: #000; border: none; padding: 15px; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-submit:hover { opacity: 0.8; }
+        
+        .login-link { text-align: center; margin-top: 15px; font-size: 0.9rem; color: #888; }
+        .login-link a { color: var(--verde-neon); text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="/" class="voltar">&larr; Voltar ao Início</a>
+        <h1>CRIAR CONTA</h1>
+
+        <form id="formRegistro">
+            <!-- DADOS DE LOGIN -->
+            <div class="form-group">
+                <label>Email *</label>
+                <input type="email" id="email" required placeholder="skatista@email.com">
+            </div>
+            <div class="form-group">
+                <label>Senha *</label>
+                <input type="password" id="senha" required placeholder="Crie uma senha forte">
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
+
+            <!-- DADOS DO PERFIL -->
+            <div class="form-group">
+                <label>Nome Completo *</label>
+                <input type="text" id="nome_completo" required placeholder="Seu nome real">
+            </div>
+            <div class="form-group">
+                <label>Apelido / Vulgo</label>
+                <input type="text" id="apelido" placeholder="Como a galera te chama">
+            </div>
+            <div class="form-group">
+                <label>Cidade e Estado *</label>
+                <input type="text" id="cidade_estado" required placeholder="Ex: Santos - SP">
+            </div>
+            <div class="form-group">
+                <label>Base</label>
+                <select id="base">
+                    <option value="Goofy">Goofy</option>
+                    <option value="Regular">Regular</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Foto de Perfil (Opcional)</label>
+                <input type="file" id="foto_perfil" accept="image/*">
+            </div>
+
+            <!-- CHECKBOX DOS TERMOS DE USO -->
+            <div class="termos-group">
+                <input type="checkbox" id="aceita_termos" required>
+                <label for="aceita_termos" style="display:inline; font-weight:normal; color:#aaa; margin:0; cursor:pointer;">
+                    Li e concordo com os <a href="#" onclick="alert('Regras da Stoke Community: Respeito aos picos, foco na cultura do skate e zero tolerância a conteúdo tóxico!'); return false;">Termos de Uso</a> *
+                </label>
+            </div>
+
+            <button type="submit" class="btn-submit">Registrar e Entrar 🛹</button>
+        </form>
+
+        <div class="login-link">
+            Já tens conta? <a href="login.html">Fazer Login</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('formRegistro').addEventListener('submit', async function(evento) {
+            evento.preventDefault(); // Impede a página de recarregar
+
+            // Verifica se os termos foram aceites (garantia extra do JS)
+            const termosAceites = document.getElementById('aceita_termos').checked;
+            if (!termosAceites) {
+                alert("❌ Deves aceitar os Termos de Uso para criar uma conta.");
+                return;
+            }
+
+            // Muda o texto do botão para mostrar que está a carregar
+            const btn = document.querySelector('.btn-submit');
+            btn.innerText = "A registar... ⏳";
+            btn.disabled = true;
+
+            // Pega o arquivo da foto
+            const inputFoto = document.getElementById('foto_perfil');
+            let fotoBase64 = null;
+
+            if (inputFoto.files.length > 0) {
+                const arquivo = inputFoto.files[0];
+                fotoBase64 = await converterParaBase64(arquivo);
+            }
+
+            // Monta o pacote de dados para enviar ao backend
+            const dadosSkatista = {
+                email: document.getElementById('email').value,
+                senha: document.getElementById('senha').value,
+                nome_completo: document.getElementById('nome_completo').value,
+                apelido: document.getElementById('apelido').value,
+                cidade_estado: document.getElementById('cidade_estado').value,
+                base: document.getElementById('base').value,
+                foto_perfil: fotoBase64,
+                modalidade: '', nivel_atual: '', instagram_arroba: '', 
+                video_destaque: '', tamanho_shape: '', marca_truck_favorita: '', biografia: ''
+            };
+
+            try {
+                const resposta = await fetch('/skatistas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dadosSkatista)
+                });
+
+                const resultado = await resposta.json();
+
+                if (resposta.ok) {
+                    alert("✅ Conta criada com sucesso! Bem-vindo à Stoke Community!");
+                    window.location.href = "/"; 
+                } else {
+                    alert("❌ Erro: " + resultado.erro);
+                    btn.innerText = "Registrar e Entrar 🛹";
+                    btn.disabled = false;
+                }
+            } catch (erro) {
+                console.error("Erro na requisição:", erro);
+                alert("❌ Erro ao conectar com o servidor.");
+                btn.innerText = "Registrar e Entrar 🛹";
+                btn.disabled = false;
+            }
+        });
+
+        function converterParaBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = erro => reject(erro);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instoke Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        /* PALETA DE CORES INSTOKE */
+        :root {
+            --verde-neon: #00ff55;
+            --fundo-escuro: #050505;
+            --fundo-card: #121212;
+            --borda: #222222;
+        }
+
+        /* Reset e Design Base */
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: var(--fundo-escuro); 
+            color: #fff; 
+            overflow-x: hidden; 
+        }
+        
+        /* Barra de Navegação Superior (Padrão Instoke) */
+        .navbar { 
+            background: var(--fundo-escuro); 
+            height: 80px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding: 0 40px; 
+            border-bottom: 1px solid var(--borda); 
+            z-index: 2000; 
+            position: relative; 
+        }
+        
+        .btn-voltar {
+            background: transparent; 
+            color: #aaa; 
+            border: 1px solid #aaa; 
+            padding: 8px 20px; 
+            border-radius: 20px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            text-decoration: none; 
+            transition: 0.3s;
+        }
+        .btn-voltar:hover { 
+            border-color: var(--verde-neon); 
+            color: var(--verde-neon); 
+        }
+
+        .navbar h1 { 
+            margin: 0; 
+            font-size: 1.5rem; 
+            font-weight: 900; 
+            letter-spacing: 1px; 
+            color: var(--verde-neon); 
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .navbar .icone-header { font-size: 1.8rem; }
+
+        /* Barra de Pesquisa Flutuante */
+        .search-container { 
+            position: absolute; 
+            top: 100px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 90%; 
+            max-width: 500px; 
+            z-index: 1000; 
+        }
+        
+        .search-bar { 
+            width: 100%; 
+            padding: 15px 20px; 
+            border-radius: 8px; 
+            border: 1px solid #333; 
+            background: var(--fundo-card); 
+            color: #fff; 
+            font-size: 1rem; 
+            outline: none; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6); 
+            transition: border 0.3s ease; 
+            box-sizing: border-box; 
+        }
+        
+        .search-bar:focus { border-color: var(--verde-neon); }
+        .search-bar::placeholder { color: #888; }
+
+        /* Área do Mapa */
+        #meuMapa { 
+            width: 100vw; 
+            height: calc(100vh - 80px); /* Ajustado para a altura da navbar */
+            z-index: 1; 
+        }
+
+        /* Estilização do Balão (Popup) do Leaflet */
+        .leaflet-popup-content-wrapper { 
+            background: var(--fundo-card); 
+            color: #fff; 
+            border-radius: 8px; 
+            border: 1px solid var(--verde-neon); 
+        }
+        
+        .leaflet-popup-tip { background: var(--verde-neon); }
+        
+        .leaflet-popup-content b { 
+            color: var(--verde-neon); 
+            font-size: 1.2rem; 
+            display: block; 
+            margin-bottom: 5px; 
+        }
+        
+        /* Ícone Customizado de Skate */
+        .skate-icon { 
+            font-size: 28px; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8); 
+            text-align: center; 
+            line-height: 1; 
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header do App -->
+    <div class="navbar">
+        <a href="index.html" class="btn-voltar">← Voltar</a>
+        <h1>Instoke Map</h1>
+        <div class="icone-header">🛹</div>
+    </div>
+
+    <!-- Barra de Pesquisa -->
+    <div class="search-container">
+        <input type="text" id="buscaPico" class="search-bar" placeholder="Pesquisar pico pelo nome...">
+    </div>
+
+    <!-- Mapa -->
+    <div id="meuMapa"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const API_URL = "http://192.168.1.6:3000"; // IP fixo do seu servidor
+
+        // Inicializa o mapa com o visual Esri
+        const mapa = L.map('meuMapa', { zoomControl: false }).setView([-23.8950, -46.4242], 12);
+        
+        // Reposiciona o controle de zoom para não ficar embaixo da barra de pesquisa
+        L.control.zoom({ position: 'bottomright' }).addTo(mapa);
+
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri - Instoke'
+        }).addTo(mapa);
+
+        // Cria um ícone personalizado (Emoji de Skate)
+        const iconeSkate = L.divIcon({
+            className: 'custom-div-icon',
+            html: "<div class='skate-icon'>🛹</div>",
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+            popupAnchor: [0, -15]
+        });
+
+        // Array para armazenar os marcadores carregados (usado na pesquisa)
+        let marcadores = [];
+
+        // Busca picos no banco e coloca no mapa
+        async function carregarPicos() {
+            try {
+                const resposta = await fetch(`${API_URL}/picos`);
+                if (!resposta.ok) return console.error("Erro na rota do backend.");
+                
+                const picos = await resposta.json();
+
+                picos.forEach(pico => {
+                    // Adiciona o marcador com o ícone de skate
+                    const marker = L.marker([pico.latitude, pico.longitude], { icon: iconeSkate })
+                        .addTo(mapa)
+                        .bindPopup(`<b>${pico.nome}</b>${pico.descricao || ''}`);
+                    
+                    // Guarda o marcador e o nome no array para a barra de pesquisa
+                    marcadores.push({
+                        nome: pico.nome.toLowerCase(),
+                        marker: marker,
+                        lat: pico.latitude,
+                        lng: pico.longitude
+                    });
+                });
+            } catch (erro) {
+                console.error('Erro ao carregar picos:', erro);
+            }
+        }
+
+        // Sistema de Pesquisa
+        document.getElementById('buscaPico').addEventListener('input', function(e) {
+            const termo = e.target.value.toLowerCase();
+            
+            marcadores.forEach(item => {
+                if (item.nome.includes(termo) && termo.length > 0) {
+                    // Abre o balão do pico que der match com a pesquisa
+                    item.marker.openPopup();
+                    // Centraliza a câmera do mapa suavemente no pico encontrado
+                    mapa.flyTo([item.lat, item.lng], 16, { duration: 0.5 });
+                } else if (termo.length === 0) {
+                    item.marker.closePopup();
+                }
+            });
+        });
+
+        // Cadastrar novo pico ao clicar no mapa
+        mapa.on('click', async function(evento) {
+            const lat = evento.latlng.lat;
+            const lng = evento.latlng.lng;
+
+            // Verifica se o usuário está logado antes de deixar cadastrar um pico
+            const usuarioString = localStorage.getItem('usuarioLogado');
+            if (!usuarioString) {
+                alert("Você precisa estar logado para cadastrar um novo pico!");
+                window.location.href = "login.html";
+                return;
+            }
+            
+            const usuarioLogado = JSON.parse(usuarioString);
+
+            const nomePico = prompt("🛹 Qual o nome desse pico?");
+            if (!nomePico) return; 
+
+            const descPico = prompt("Breve descrição (ex: Corrimão de 5 degraus):");
+
+            try {
+                const resposta = await fetch(`${API_URL}/picos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // Envia o ID do usuário logado em vez de "1" fixo
+                    body: JSON.stringify({ 
+                        nome: nomePico, 
+                        descricao: descPico, 
+                        latitude: lat, 
+                        longitude: lng, 
+                        criado_por: usuarioLogado.id 
+                    })
+                });
+
+                if (resposta.ok) {
+                    const novoMarker = L.marker([lat, lng], { icon: iconeSkate })
+                        .addTo(mapa)
+                        .bindPopup(`<b>${nomePico}</b>${descPico || ''}`)
+                        .openPopup();
+                    
+                    marcadores.push({ nome: nomePico.toLowerCase(), marker: novoMarker, lat: lat, lng: lng });
+                } else {
+                    alert("❌ Erro ao salvar o pico no banco de dados.");
+                }
+            } catch (erro) {
+                console.error('Erro de conexão:', erro);
+            }
+        });
+
+        // Carrega os picos assim que o script roda
+        carregarPicos();
+    </script>
+</body>
+</html>

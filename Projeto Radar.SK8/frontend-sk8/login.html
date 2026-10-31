@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Stoke Community</title>
+    <style>
+        :root {
+            --verde-neon: #00ff55;
+            --fundo-escuro: #050505;
+            --fundo-card: #121212;
+            --borda: #222222;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--fundo-escuro); color: #ffffff; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 90vh; }
+
+        .container { background-color: var(--fundo-card); border: 1px solid var(--borda); border-radius: 12px; padding: 40px 30px; width: 100%; max-width: 400px; }
+        
+        h1 { color: var(--verde-neon); text-align: center; margin-bottom: 30px; font-weight: 900; letter-spacing: 1px; }
+        .voltar { color: #aaa; text-decoration: none; display: block; margin-bottom: 20px; font-weight: bold; text-align: center; }
+        .voltar:hover { color: var(--verde-neon); }
+
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; color: #ccc; font-weight: bold; font-size: 0.9rem; }
+        
+        input { width: 100%; padding: 12px; background-color: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--verde-neon); }
+
+        .btn-submit { width: 100%; background-color: var(--verde-neon); color: #000; border: none; padding: 15px; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-submit:hover { opacity: 0.8; }
+        
+        .registro-link { text-align: center; margin-top: 20px; font-size: 0.9rem; color: #888; }
+        .registro-link a { color: var(--verde-neon); text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ENTRAR</h1>
+
+        <form id="formLogin">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="email" required placeholder="skatista@email.com">
+            </div>
+            <div class="form-group">
+                <label>Senha</label>
+                <input type="password" id="senha" required placeholder="Tua senha secreta">
+            </div>
+
+            <button type="submit" class="btn-submit">Acessar o Radar 🛹</button>
+        </form>
+
+        <div class="registro-link">
+            Ainda não és local? <a href="registro.html">Criar Conta</a>
+        </div>
+        
+        <a href="/" class="voltar" style="margin-top: 20px;">&larr; Voltar ao Início</a>
+    </div>
+
+    <script>
+        // O MESMO IP QUE VOCÊ USA NO INDEX.HTML
+        const API_URL = "http://192.168.1.6:3000"; // Se o seu IP for diferente, ajuste aqui!
+
+        document.getElementById('formLogin').addEventListener('submit', async function(evento) {
+            evento.preventDefault(); 
+
+            const btn = document.querySelector('.btn-submit');
+            btn.innerText = "A verificar... ⏳";
+            btn.disabled = true;
+
+            const email = document.getElementById('email').value.trim();
+            const senha = document.getElementById('senha').value;
+
+            try {
+                // CORRIGIDO: Agora usa o IP da rede em vez de localhost
+                const resposta = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const resultado = await resposta.json();
+
+                if (resposta.ok) {
+                    localStorage.setItem('tokenInstoke', resultado.token);
+                    localStorage.setItem('usuarioLogado', JSON.stringify(resultado.usuario));
+                    
+                    alert("✅ " + resultado.mensagem);
+                    window.location.href = "/"; // Volta pro Feed
+                } else {
+                    alert("❌ " + resultado.erro);
+                    btn.innerText = "Acessar o Radar 🛹";
+                    btn.disabled = false;
+                }
+            } catch (erro) {
+                console.error("Erro na requisição:", erro);
+                alert("❌ Erro ao conectar com o servidor.");
+                btn.innerText = "Acessar o Radar 🛹";
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
