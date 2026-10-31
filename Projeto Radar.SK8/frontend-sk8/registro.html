@@ -67,11 +67,11 @@
             <!-- DADOS DE LOGIN -->
             <div class="form-group">
                 <label>Email *</label>
-                <input type="email" id="email" required placeholder="skatista@email.com">
+                <input type="email" id="email" name="email" required placeholder="skatista@email.com">
             </div>
             <div class="form-group">
                 <label>Senha *</label>
-                <input type="password" id="senha" required placeholder="Crie uma senha forte">
+                <input type="password" id="senha" name="senha" required placeholder="Crie uma senha forte">
             </div>
 
             <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
@@ -79,26 +79,27 @@
             <!-- DADOS DO PERFIL -->
             <div class="form-group">
                 <label>Nome Completo *</label>
-                <input type="text" id="nome_completo" required placeholder="Seu nome real">
+                <input type="text" id="nome_completo" name="nome_completo" required placeholder="Seu nome real">
             </div>
             <div class="form-group">
                 <label>Apelido / Vulgo</label>
-                <input type="text" id="apelido" placeholder="Como a galera te chama">
+                <input type="text" id="apelido" name="apelido" placeholder="Como a galera te chama">
             </div>
             <div class="form-group">
                 <label>Cidade e Estado *</label>
-                <input type="text" id="cidade_estado" required placeholder="Ex: Santos - SP">
+                <input type="text" id="cidade_estado" name="cidade_estado" required placeholder="Ex: Santos - SP">
             </div>
             <div class="form-group">
                 <label>Base</label>
-                <select id="base">
+                <select id="base" name="base">
                     <option value="Goofy">Goofy</option>
                     <option value="Regular">Regular</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Foto de Perfil (Opcional)</label>
-                <input type="file" id="foto_perfil" accept="image/*">
+                <!-- O name="foto_perfil" tem que bater exatamente com o upload.single('foto_perfil') do Node -->
+                <input type="file" id="foto_perfil" name="foto_perfil" accept="image/*">
             </div>
 
             <!-- CHECKBOX DOS TERMOS DE USO -->
@@ -121,7 +122,7 @@
         document.getElementById('formRegistro').addEventListener('submit', async function(evento) {
             evento.preventDefault(); // Impede a página de recarregar
 
-            // Verifica se os termos foram aceites (garantia extra do JS)
+            // Verifica se os termos foram aceites
             const termosAceites = document.getElementById('aceita_termos').checked;
             if (!termosAceites) {
                 alert("❌ Deves aceitar os Termos de Uso para criar uma conta.");
@@ -133,40 +134,23 @@
             btn.innerText = "A registar... ⏳";
             btn.disabled = true;
 
-            // Pega o arquivo da foto
-            const inputFoto = document.getElementById('foto_perfil');
-            let fotoBase64 = null;
-
-            if (inputFoto.files.length > 0) {
-                const arquivo = inputFoto.files[0];
-                fotoBase64 = await converterParaBase64(arquivo);
-            }
-
-            // Monta o pacote de dados para enviar ao backend
-            const dadosSkatista = {
-                email: document.getElementById('email').value,
-                senha: document.getElementById('senha').value,
-                nome_completo: document.getElementById('nome_completo').value,
-                apelido: document.getElementById('apelido').value,
-                cidade_estado: document.getElementById('cidade_estado').value,
-                base: document.getElementById('base').value,
-                foto_perfil: fotoBase64,
-                modalidade: '', nivel_atual: '', instagram_arroba: '', 
-                video_destaque: '', tamanho_shape: '', marca_truck_favorita: '', biografia: ''
-            };
+            // Pega o formulário inteiro e joga no FormData (incluindo inputs e arquivos)
+            const formElement = document.getElementById('formRegistro');
+            const formData = new FormData(formElement);
 
             try {
                 const resposta = await fetch('/skatistas', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dadosSkatista)
+                    // ATENÇÃO: Não definimos Content-Type aqui. O navegador gerencia 
+                    // o multipart/form-data automaticamente por conta do FormData.
+                    body: formData
                 });
 
                 const resultado = await resposta.json();
 
                 if (resposta.ok) {
                     alert("✅ Conta criada com sucesso! Bem-vindo à Stoke Community!");
-                    window.location.href = "/"; 
+                    window.location.href = "login.html"; 
                 } else {
                     alert("❌ Erro: " + resultado.erro);
                     btn.innerText = "Registrar e Entrar 🛹";
@@ -179,15 +163,6 @@
                 btn.disabled = false;
             }
         });
-
-        function converterParaBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = erro => reject(erro);
-            });
-        }
     </script>
 </body>
 </html>

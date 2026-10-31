@@ -130,15 +130,18 @@ app.post('/skatistas', async (req, res) => {
         const senhaCriptografada = await bcrypt.hash(senha, 10);
         const sql = `INSERT INTO skatistas (nome_completo, email, senha, apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, foto_perfil, biografia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
         db.query(sql, [nome_completo, email, senhaCriptografada, apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, foto_perfil, biografia], (erro, resultados) => {
-            if (erro) {
-                if (erro.code === 'ER_DUP_ENTRY') return res.status(400).json({ erro: 'Este email já está registrado no Instoke!' });
-                return res.status(500).json({ erro: 'Falha ao salvar no banco.' });
-            }
+           if (erro) {
+    console.error("🔥 ERRO MYSQL NO CADASTRO:", erro); // <-- ADICIONE ESTA LINHA
+    if (erro.code === 'ER_DUP_ENTRY') return res.status(400).json({ erro: 'Este email já está registrado no Instoke!' });
+    return res.status(500).json({ erro: 'Falha ao salvar no banco.' });
+}
             res.status(201).json({ mensagem: 'Skatista registado com sucesso!' });
         });
     } catch (erroGeral) {
-        res.status(500).json({ erro: 'Erro interno ao processar o cadastro.' });
-    }
+       // Substitua o res.status(500) antigo por este:
+return res.status(500).json({ 
+    erro: 'Falha ao salvar no banco.', 
+    detalhes_reais_do_mysql: erro.message 
 });
 
 app.post('/login', (req, res) => {
