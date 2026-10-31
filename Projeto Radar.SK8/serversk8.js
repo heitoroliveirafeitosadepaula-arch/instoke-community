@@ -124,24 +124,32 @@ app.get('/picos', (req, res) => {
 // ==========================================
 // SISTEMA DE USUÁRIOS E AUTENTICAÇÃO
 // ==========================================
-app.post('/skatistas', async (req, res) => {
-    const { nome_completo, email, senha, apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, foto_perfil, biografia } = req.body;
+app.post('/skatistas', upload.single('foto_perfil'), async (req, res) => {
+    const { nome_completo, email, senha, apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, biografia } = req.body;
+    
+    // TRAVA DE SEGURANÇA: Se a senha não chegou, o bcrypt quebra
+    if (!senha || !email || !nome_completo) {
+        return res.status(400).json({ erro: 'Preencha todos os campos obrigatórios (Email, Senha, Nome).' });
+    }
+
+    const foto_perfil_url = req.file ? `/uploads/${req.file.filename}` : null;
+
     try {
         const senhaCriptografada = await bcrypt.hash(senha, 10);
         const sql = `INSERT INTO skatistas (nome_completo, email, senha, apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, foto_perfil, biografia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-        db.query(sql, [nome_completo, email, senhaCriptografada, apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, foto_perfil, biografia], (erro, resultados) => {
-           if (erro) {
-    console.error("🔥 ERRO MYSQL NO CADASTRO:", erro); // <-- ADICIONE ESTA LINHA
-    if (erro.code === 'ER_DUP_ENTRY') return res.status(400).json({ erro: 'Este email já está registrado no Instoke!' });
-    return res.status(500).json({ erro: 'Falha ao salvar no banco.' });
-}
+        
+        db.query(sql, [nome_completo, email, senhaCriptografada, apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, foto_perfil_url, biografia], (erro) => {
+            if (erro) {
+                console.error("🔥 ERRO MYSQL NO CADASTRO:", erro);
+                if (erro.code === 'ER_DUP_ENTRY') return res.status(400).json({ erro: 'Este email já está registrado no Instoke!' });
+                return res.status(500).json({ erro: 'Falha ao salvar no banco.', detalhes: erro.message });
+            }
             res.status(201).json({ mensagem: 'Skatista registado com sucesso!' });
         });
     } catch (erroGeral) {
-       // Substitua o res.status(500) antigo por este:
-return res.status(500).json({ 
-    erro: 'Falha ao salvar no banco.', 
-    detalhes_reais_do_mysql: erro.message 
+        console.error("🔥 ERRO NO BCRYPT/SERVIDOR:", erroGeral);
+        res.status(500).json({ erro: 'Erro interno ao processar o cadastro.', detalhes: erroGeral.message });
+    }
 });
 
 app.post('/login', (req, res) => {
