@@ -113,145 +113,147 @@
     </main>
 
     <script>
-        const API_URL = "http://192.168.1.6:3000"; // IP fixo para conexão Node.js/Express
+        const API_URL = ""; 
+
+document.addEventListener('DOMContentLoaded', carregarPerfilCompleto);
+
+function obterThumbnailVideo(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+        return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`;
+    }
+    return null;
+}
+
+async function carregarPerfilCompleto() {
+    const container = document.getElementById('area-perfil');
+    const parametrosUrl = new URLSearchParams(window.location.search);
+    const idSkatista = parametrosUrl.get('id');
+
+    const usuarioString = localStorage.getItem('usuarioLogado');
+    let usuarioLogado = null;
+    if (usuarioString) {
+        usuarioLogado = JSON.parse(usuarioString);
+    }
+
+    if (!idSkatista) {
+        container.innerHTML = '<p class="msg-carregando" style="color:#ff4500;">Nenhum atleta selecionado.</p>';
+        setTimeout(() => window.location.href = 'index.html', 2000);
+        return;
+    }
+
+    try {
+        const [respostaPerfil, respostaMidias] = await Promise.all([
+            fetch(`${API_URL}/skatistas/${idSkatista}`),
+            fetch(`${API_URL}/skatistas/${idSkatista}/midias`)
+        ]);
         
-        document.addEventListener('DOMContentLoaded', carregarPerfilCompleto);
+        if (!respostaPerfil.ok) throw new Error('Skatista não encontrado');
+        
+        const skatista = await respostaPerfil.json();
+        const midias = await respostaMidias.json();
 
-        // FUNÇÃO PARA PUXAR A CAPA DO YOUTUBE
-        function obterThumbnailVideo(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            if (match && match[2].length === 11) {
-                return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`;
+        // 🔥 CORREÇÃO DA FOTO DE PERFIL (Multer ou Base64)
+        let imgHtml = '🛹';
+        if (skatista.foto_perfil) {
+            let imgSrc = skatista.foto_perfil;
+            if (imgSrc.startsWith('/uploads')) {
+                imgSrc = `${API_URL}${imgSrc}`;
+            } else if (!imgSrc.startsWith('http') && !imgSrc.startsWith('data:image')) {
+                imgSrc = `data:image/jpeg;base64,${imgSrc}`;
             }
-            return null;
+            imgHtml = `<img src="${imgSrc}" alt="${skatista.apelido || 'Skatista'}">`;
         }
 
-        async function carregarPerfilCompleto() {
-            const container = document.getElementById('area-perfil');
-            const parametrosUrl = new URLSearchParams(window.location.search);
-            const idSkatista = parametrosUrl.get('id');
-
-            // Verifica quem está logado
-            const usuarioString = localStorage.getItem('usuarioLogado');
-            let usuarioLogado = null;
-            if (usuarioString) {
-                usuarioLogado = JSON.parse(usuarioString);
-            }
-
-            if (!idSkatista) {
-                container.innerHTML = '<p class="msg-carregando" style="color:#ff4500;">Nenhum atleta selecionado.</p>';
-                setTimeout(() => window.location.href = 'index.html', 2000);
-                return;
-            }
-
-            try {
-                const [respostaPerfil, respostaMidias] = await Promise.all([
-                    fetch(`${API_URL}/skatistas/${idSkatista}`),
-                    fetch(`${API_URL}/skatistas/${idSkatista}/midias`)
-                ]);
-                
-                if (!respostaPerfil.ok) throw new Error('Skatista não encontrado');
-                
-                const skatista = await respostaPerfil.json();
-                const midias = await respostaMidias.json();
-
-                let imgHtml = '🛹';
-                if (skatista.foto_perfil) {
-                    const imgSrc = skatista.foto_perfil.startsWith('data:image') 
-                                    ? skatista.foto_perfil : `data:image/jpeg;base64,${skatista.foto_perfil}`;
-                    imgHtml = `<img src="${imgSrc}" alt="${skatista.apelido || 'Skatista'}">`;
-                }
-
-                let linkInstaHtml = '';
-                if (skatista.instagram_arroba) {
-                    const arrobaLimpa = skatista.instagram_arroba.replace('@', '');
-                    linkInstaHtml = `<a href="https://instagram.com/${arrobaLimpa}" target="_blank" class="link-insta">@${arrobaLimpa}</a><br>`;
-                }
-
-                let totalProps = skatista.curtidas || 0;
-                midias.forEach(m => totalProps += m.curtidas || 0);
-
-                let gridHtml = '';
-                if (midias.length === 0) {
-                    gridHtml = '<p class="msg-carregando" style="grid-column: 1 / -1;">Sem publicações no radar.</p>';
-                } else {
-                    midias.forEach(m => {
-                        if (m.tipo === 'foto' && m.arquivo_base64) {
-                            const imgMidia = m.arquivo_base64.startsWith('data:image') 
-                                            ? m.arquivo_base64 : `data:image/jpeg;base64,${m.arquivo_base64}`;
-                            gridHtml += `
-                                <div class="item-grid" title="${m.legenda || ''}">
-                                    <img src="${imgMidia}" alt="Post">
-                                </div>`;
-                        } else if (m.tipo === 'video' && m.url_video) {
-                            const thumb = obterThumbnailVideo(m.url_video);
-                            
-                            if (thumb) {
-                                // Grelha com a capa do YouTube e um ícone de play no canto
-                                gridHtml += `
-                                    <div class="item-grid" onclick="window.open('${m.url_video}', '_blank')" title="${m.legenda || ''}">
-                                        <img src="${thumb}" alt="Vídeo YouTube">
-                                        <div class="icone-video" style="background:rgba(0,0,0,0.7); border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:1rem; padding-left:2px; color:var(--verde-neon);">
-                                            ▶
-                                        </div>
-                                    </div>`;
-                            } else {
-                                // Grelha com link genérico
-                                gridHtml += `
-                                    <div class="item-grid" onclick="window.open('${m.url_video}', '_blank')" title="${m.legenda || ''}" style="background: #222; flex-direction:column;">
-                                        <div style="font-size: 2rem;">🔗</div>
-                                        <span style="color:#aaa; font-weight:bold; font-size: 0.8rem; margin-top: 5px;">LINK</span>
-                                    </div>`;
-                            }
-                        }
-                    });
-                }
-
-                // Lógica de integração: Mostra botão editar apenas se o perfil for do skatista logado
-                let botaoEditarHTML = '';
-                if (usuarioLogado && String(usuarioLogado.id) === String(idSkatista)) {
-                    botaoEditarHTML = `<a href="editar.perfil.html" class="btn-editar">Editar Perfil ⚙️</a>`;
-                }
-
-                container.innerHTML = `
-                    <div class="header-insta">
-                        <div class="foto-perfil">${imgHtml}</div>
-                        <div class="info-superior">
-                            <div class="nome-container">
-                                <h2 class="nome">${skatista.apelido || skatista.nome_completo || 'Sem Nome'}</h2>
-                                ${botaoEditarHTML}
-                            </div>
-                            <div class="estatisticas">
-                                <span><strong>${midias.length}</strong> publicações</span>
-                                <span><strong>${totalProps}</strong> props</span>
-                                <span>Base: <strong>${skatista.base || 'N/A'}</strong></span>
-                            </div>
-                            <div class="bio-area">
-                                ${linkInstaHtml}
-                                <div class="local">📍 ${skatista.cidade_estado || 'Local desconhecido'}</div>
-                                <div>${skatista.biografia || ''}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="separador-grid">
-                        <span>POSTS</span>
-                    </div>
-
-                    <div class="grid-fotos">
-                        ${gridHtml}
-                    </div>
-                `;
-
-            } catch (erro) {
-                console.error(erro);
-                container.innerHTML = `
-                    <p class="msg-carregando" style="color:#ff4500;">
-                        Erro ao carregar o perfil.<br>Verifique se o backend e o MySQL estão ativos.
-                    </p>`;
-            }
+        let linkInstaHtml = '';
+        if (skatista.instagram_arroba) {
+            const arrobaLimpa = skatista.instagram_arroba.replace('@', '');
+            linkInstaHtml = `<a href="https://instagram.com/${arrobaLimpa}" target="_blank" class="link-insta">@${arrobaLimpa}</a><br>`;
         }
+
+        let totalProps = skatista.curtidas || 0;
+        midias.forEach(m => totalProps += m.curtidas || 0);
+
+        let gridHtml = '';
+        if (midias.length === 0) {
+            gridHtml = '<p class="msg-carregando" style="grid-column: 1 / -1;">Sem publicações no radar.</p>';
+        } else {
+            midias.forEach(m => {
+                // 🔥 CORREÇÃO DA GRELHA DE POSTS (Aceita 'foto' e 'imagem')
+                if ((m.tipo === 'foto' || m.tipo === 'imagem') && m.arquivo_base64) {
+                    let imgMidia = m.arquivo_base64;
+                    if (imgMidia.startsWith('/uploads')) {
+                        imgMidia = `${API_URL}${imgMidia}`;
+                    } else if (!imgMidia.startsWith('http') && !imgMidia.startsWith('data:image')) {
+                        imgMidia = `data:image/jpeg;base64,${imgMidia}`;
+                    }
+                    gridHtml += `
+                        <div class="item-grid" title="${m.legenda || ''}">
+                            <img src="${imgMidia}" alt="Post">
+                        </div>`;
+                } else if (m.tipo === 'video' && m.url_video) {
+                    const thumb = obterThumbnailVideo(m.url_video);
+                    if (thumb) {
+                        gridHtml += `
+                            <div class="item-grid" onclick="window.open('${m.url_video}', '_blank')" title="${m.legenda || ''}">
+                                <img src="${thumb}" alt="Vídeo YouTube">
+                                <div class="icone-video" style="background:rgba(0,0,0,0.7); border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:1rem; padding-left:2px; color:var(--verde-neon);">▶</div>
+                            </div>`;
+                    } else {
+                        gridHtml += `
+                            <div class="item-grid" onclick="window.open('${m.url_video}', '_blank')" title="${m.legenda || ''}" style="background: #222; flex-direction:column;">
+                                <div style="font-size: 2rem;">🔗</div>
+                                <span style="color:#aaa; font-weight:bold; font-size: 0.8rem; margin-top: 5px;">LINK</span>
+                            </div>`;
+                    }
+                }
+            });
+        }
+
+        let botaoEditarHTML = '';
+        if (usuarioLogado && String(usuarioLogado.id) === String(idSkatista)) {
+            botaoEditarHTML = `<a href="editar.perfil.html" class="btn-editar">Editar Perfil ⚙️</a>`;
+        }
+
+        container.innerHTML = `
+            <div class="header-insta">
+                <div class="foto-perfil">${imgHtml}</div>
+                <div class="info-superior">
+                    <div class="nome-container">
+                        <h2 class="nome">${skatista.apelido || skatista.nome_completo || 'Sem Nome'}</h2>
+                        ${botaoEditarHTML}
+                    </div>
+                    <div class="estatisticas">
+                        <span><strong>${midias.length}</strong> publicações</span>
+                        <span><strong>${totalProps}</strong> props</span>
+                        <span>Base: <strong>${skatista.base || 'N/A'}</strong></span>
+                    </div>
+                    <div class="bio-area">
+                        ${linkInstaHtml}
+                        <div class="local">📍 ${skatista.cidade_estado || 'Local desconhecido'}</div>
+                        <div>${skatista.biografia || ''}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="separador-grid">
+                <span>POSTS</span>
+            </div>
+
+            <div class="grid-fotos">
+                ${gridHtml}
+            </div>
+        `;
+
+    } catch (erro) {
+        console.error(erro);
+        container.innerHTML = `
+            <p class="msg-carregando" style="color:#ff4500;">
+                Erro ao carregar o perfil.<br>Verifique se o backend e o MySQL estão ativos.
+            </p>`;
+    }
+}
     </script>
 </body>
 </html>

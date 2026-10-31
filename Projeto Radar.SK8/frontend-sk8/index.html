@@ -399,357 +399,324 @@
     </main>
 
     <script>
-        const API_URL = "http://192.168.1.6:3000"; // IP fixo do seu servidor
+        const API_URL = "http://192.168.1.6:3000"; // IP de volta na jogada!
 
-        // ==========================================
-        // CONTROLE DO MENU HAMBÚRGUER
-        // ==========================================
-        function toggleMenu() {
-            const menu = document.getElementById('menu-navegacao');
-            menu.classList.toggle('ativo');
+// CONTROLE DO MENU HAMBÚRGUER
+function toggleMenu() {
+    const menu = document.getElementById('menu-navegacao');
+    menu.classList.toggle('ativo');
+}
+
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('menu-navegacao');
+    const hamburger = document.querySelector('.btn-hamburger');
+    if (!hamburger.contains(event.target) && !menu.contains(event.target)) {
+        menu.classList.remove('ativo');
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    verificarSessao();
+    carregarFeed();
+});
+
+// SISTEMA DE SESSÃO
+function verificarSessao() {
+    const menuNav = document.getElementById('menu-navegacao');
+    const usuarioString = localStorage.getItem('usuarioLogado');
+
+    let botoesHtml = `
+        <a href="mapa.html" class="link-btn">
+            <button class="btn-secundario">🗺️ Mapa de Picos</button>
+        </a>
+    `;
+
+    if (usuarioString) {
+        const usuario = JSON.parse(usuarioString);
+        botoesHtml += `
+            <a href="midia.html" class="link-btn">
+                <button class="btn-secundario">+ Mídia</button>
+            </a>
+            <a href="perfil.html?id=${usuario.id}" class="link-btn">
+                <button class="btn-secundario" style="color: #fff; border-color: #555;">🛹 ${usuario.apelido || usuario.nome || 'Meu Perfil'}</button>
+            </a>
+            <button class="btn-secundario" style="border-color: #ff3333; color: #ff3333;" onclick="fazerLogout()">Sair</button>
+        `;
+    } else {
+        botoesHtml += `
+            <a href="login.html" class="link-btn">
+                <button class="btn-secundario">Entrar</button>
+            </a>
+            <a href="registro.html" class="link-btn">
+                <button class="btn-novo-atleta">+ Novo Atleta</button>
+            </a>
+        `;
+    }
+    menuNav.innerHTML = botoesHtml;
+}
+
+function fazerLogout() {
+    if(confirm("Tens a certeza que queres sair do Instoke?")) {
+        localStorage.removeItem('usuarioLogado');
+        localStorage.removeItem('tokenInstoke');
+        window.location.reload(); 
+    }
+}
+
+function removerAcentos(texto) {
+    if (!texto) return '';
+    return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function obterThumbnailVideo(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+        return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`;
+    }
+    return null; 
+}
+
+// ALIMENTAÇÃO DO FEED
+// ALIMENTAÇÃO DO FEED (BLINDADA CONTRA ERROS)
+async function carregarFeed() {
+    const container = document.getElementById('feed');
+    if (!container) return;
+
+    container.innerHTML = '<p class="msg-carregando">A CARREGAR O FEED... ⏳</p>';
+
+    try {
+        const resposta = await fetch(`${API_URL}/feed`);
+        if (!resposta.ok) throw new Error('Erro de conexão com o servidor');
+        
+        const posts = await resposta.json();
+        container.innerHTML = ''; 
+
+        if (!posts || posts.length === 0) {
+            container.innerHTML = '<p class="msg-carregando">Nenhuma mídia postada no Instoke ainda. Seja o primeiro!</p>';
+            return;
         }
 
-        document.addEventListener('click', function(event) {
-            const menu = document.getElementById('menu-navegacao');
-            const hamburger = document.querySelector('.btn-hamburger');
-            if (!hamburger.contains(event.target) && !menu.contains(event.target)) {
-                menu.classList.remove('ativo');
+        posts.forEach(post => {
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const textoPesquisavel = removerAcentos(
+                `${post.apelido || ''} ${post.nome_completo || ''} ${post.cidade_estado || ''} ${post.legenda || ''}`
+            ).toLowerCase();
+            card.setAttribute('data-busca', textoPesquisavel);
+
+            let midiaHtml = '<div class="sem-foto">🛹</div>';
+            
+            // Tratamento seguro para imagem (Multer ou Base64)
+            if ((post.tipo === 'foto' || post.tipo === 'imagem') && post.arquivo_base64) {
+                let imgSrc = post.arquivo_base64;
+                if (imgSrc.startsWith('/uploads')) {
+                    imgSrc = `${API_URL}${imgSrc}`;
+                } else if (!imgSrc.startsWith('http') && !imgSrc.startsWith('data:image')) {
+                    imgSrc = `data:image/jpeg;base64,${imgSrc}`;
+                }
+                midiaHtml = `<img src="${imgSrc}" alt="Post de ${post.apelido || 'Atleta'}">`;
+            } 
+            else if (post.tipo === 'video' && post.url_video) {
+                const thumb = obterThumbnailVideo(post.url_video);
+                if (thumb) {
+                    midiaHtml = `
+                        <a href="${post.url_video}" target="_blank" style="position:relative; display:block; width:100%; height:100%; background:#000;">
+                            <img src="${thumb}" alt="Capa do Vídeo" style="width:100%; height:100%; object-fit:cover; opacity:0.8; transition:0.3s;">
+                            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.7); border: 2px solid var(--verde-neon); border-radius:50%; width:60px; height:60px; display:flex; align-items:center; justify-content:center; color:var(--verde-neon); font-size:24px; padding-left: 4px;">▶</div>
+                        </a>`;
+                } else {
+                    midiaHtml = `
+                        <a href="${post.url_video}" target="_blank" style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; text-decoration:none; color:var(--verde-neon); font-size:1.2rem; background:linear-gradient(45deg, #111, #1a1a1a);">
+                            <div style="background:rgba(0,255,85,0.1); padding:20px; border-radius:50%; margin-bottom:15px; font-size: 2.5rem;">🔗</div>
+                            <strong style="text-align:center;">Assistir Link Externo</strong>
+                        </a>`;
+                }
             }
-        });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            verificarSessao();
-            carregarFeed();
-        });
+            const dataFormatada = post.data_publicacao ? new Date(post.data_publicacao).toLocaleDateString('pt-BR') : '';
 
-        // ==========================================
-        // SISTEMA DE SESSÃO
-        // ==========================================
-        function verificarSessao() {
-            const menuNav = document.getElementById('menu-navegacao');
-            const usuarioString = localStorage.getItem('usuarioLogado');
-
-            let botoesHtml = `
-                <a href="mapa.html" class="link-btn">
-                    <button class="btn-secundario">🗺️ Mapa de Picos</button>
-                </a>
+            card.innerHTML = `
+                <div class="card-header">
+                    <h2 class="nome-clicavel" onclick="window.location.href='perfil.html?id=${post.skatista_id}'">
+                        ${post.apelido || post.nome_completo || 'Atleta'}
+                    </h2>
+                    <span class="badge-base">${post.base || 'N/A'}</span>
+                </div>
+                <div class="card-foto">${midiaHtml}</div>
+                <div class="card-info">
+                    <div class="card-footer" style="margin-bottom: 15px;">
+                        <div class="botoes-acao">
+                            <button class="btn-curtir" onclick="darLike(${post.midia_id}, this)">⚡ Dar Props</button>
+                            <button class="btn-comentar" onclick="toggleComentarios(${post.midia_id})">💬 Comentar</button>
+                        </div>
+                        <span class="curtidas-count">${post.curtidas || 0} props</span>
+                    </div>
+                    <div class="bio" style="margin-bottom: 10px;">
+                        <strong style="color: #fff; cursor: pointer;" onclick="window.location.href='perfil.html?id=${post.skatista_id}'">${post.apelido || post.nome_completo || 'Atleta'}:</strong> 
+                        <span style="color: #ccc;">${post.legenda || ''}</span>
+                    </div>
+                    <div class="local-arroba" style="font-size: 0.8rem;">
+                        📍 ${post.cidade_estado || 'Local desconhecido'} ${dataFormatada ? '| 📅 ' + dataFormatada : ''}
+                    </div>
+                    <div class="comentarios-section" id="secao-comentarios-${post.midia_id}">
+                        <div class="lista-comentarios" id="lista-comentarios-${post.midia_id}">
+                            <p style="color: #555; text-align: center; font-size: 0.8rem;">A carregar...</p>
+                        </div>
+                        <form class="form-comentario" onsubmit="enviarComentario(event, ${post.midia_id})">
+                            <input type="text" id="input-comentario-${post.midia_id}" class="input-comentario" placeholder="Adicione um comentário..." required autocomplete="off">
+                            <button type="submit" class="btn-enviar-comentario">Publicar</button>
+                        </form>
+                    </div>
+                </div>
             `;
-
-            if (usuarioString) {
-                const usuario = JSON.parse(usuarioString);
-                botoesHtml += `
-                    <a href="midia.html" class="link-btn">
-                        <button class="btn-secundario">+ Mídia</button>
-                    </a>
-                    <a href="perfil.html?id=${usuario.id}" class="link-btn">
-                        <button class="btn-secundario" style="color: #fff; border-color: #555;">🛹 ${usuario.apelido || usuario.nome || 'Meu Perfil'}</button>
-                    </a>
-                    <button class="btn-secundario" style="border-color: #ff3333; color: #ff3333;" onclick="fazerLogout()">Sair</button>
-                `;
-            } else {
-                botoesHtml += `
-                    <a href="login.html" class="link-btn">
-                        <button class="btn-secundario">Entrar</button>
-                    </a>
-                    <a href="registro.html" class="link-btn">
-                        <button class="btn-novo-atleta">+ Novo Atleta</button>
-                    </a>
-                `;
-            }
-
-            menuNav.innerHTML = botoesHtml;
-        }
-
-        function fazerLogout() {
-            if(confirm("Tens a certeza que queres sair do Instoke?")) {
-                localStorage.removeItem('usuarioLogado');
-                localStorage.removeItem('tokenInstoke'); // Tira o token também na hora de sair!
-                window.location.reload(); 
-            }
-        }
-
-        function removerAcentos(texto) {
-            if (!texto) return '';
-            return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        }
-
-        function obterThumbnailVideo(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            if (match && match[2].length === 11) {
-                return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`;
-            }
-            return null; 
-        }
-
-        // ==========================================
-        // ALIMENTAÇÃO DO FEED
-        // ==========================================
-        async function carregarFeed() {
-            const container = document.getElementById('feed');
-
-            try {
-                const resposta = await fetch(`${API_URL}/feed`);
-                if (!resposta.ok) throw new Error('Erro de conexão com o servidor');
-                
-                const posts = await resposta.json();
-                container.innerHTML = ''; 
-
-                if (posts.length === 0) {
-                    container.innerHTML = '<p class="msg-carregando">Nenhuma mídia postada no Instoke ainda. Seja o primeiro!</p>';
-                    return;
-                }
-
-                posts.forEach(post => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-
-                    const textoPesquisavel = removerAcentos(
-                        `${post.apelido || ''} ${post.nome_completo || ''} ${post.cidade_estado || ''} ${post.legenda || ''}`
-                    ).toLowerCase();
-                    
-                    card.setAttribute('data-busca', textoPesquisavel);
-
-                    let midiaHtml = '<div class="sem-foto">🛹</div>';
-                    if (post.tipo === 'foto' && post.arquivo_base64) {
-                        const imgSrc = post.arquivo_base64.startsWith('data:image') 
-                                    ? post.arquivo_base64 
-                                    : `data:image/jpeg;base64,${post.arquivo_base64}`;
-                        midiaHtml = `<img src="${imgSrc}" alt="Post de ${post.apelido || 'Atleta'}">`;
-                  } else if (post.tipo === 'video' && post.url_video) {
-                        const thumb = obterThumbnailVideo(post.url_video);
-                        
-                        if (thumb) {
-                            midiaHtml = `
-                                <a href="${post.url_video}" target="_blank" style="position:relative; display:block; width:100%; height:100%; background:#000;">
-                                    <img src="${thumb}" alt="Capa do Vídeo" style="width:100%; height:100%; object-fit:cover; opacity:0.8; transition:0.3s;">
-                                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.7); border: 2px solid var(--verde-neon); border-radius:50%; width:60px; height:60px; display:flex; align-items:center; justify-content:center; color:var(--verde-neon); font-size:24px; padding-left: 4px; box-shadow: 0 0 15px rgba(0,255,85,0.5);">
-                                        ▶
-                                    </div>
-                                </a>`;
-                        } else {
-                            midiaHtml = `
-                                <a href="${post.url_video}" target="_blank" style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; text-decoration:none; color:var(--verde-neon); font-size:1.2rem; background:linear-gradient(45deg, #111, #1a1a1a);">
-                                    <div style="background:rgba(0,255,85,0.1); padding:20px; border-radius:50%; margin-bottom:15px; font-size: 2.5rem;">
-                                        🔗
-                                    </div>
-                                    <strong style="text-align:center;">Assistir Link Externo</strong>
-                                    <span style="font-size:0.85rem; color:#888; margin-top:10px;">(Abre numa nova aba)</span>
-                                </a>`;
-                        }
-                    }
-
-                    card.innerHTML = `
-                        <div class="card-header">
-                            <h2 class="nome-clicavel" onclick="window.location.href='perfil.html?id=${post.skatista_id}'">
-                                ${post.apelido || post.nome_completo}
-                            </h2>
-                            <span class="badge-base">${post.base || 'N/A'}</span>
-                        </div>
-                        <div class="card-foto">
-                            ${midiaHtml}
-                        </div>
-                        <div class="card-info">
-                            <div class="card-footer" style="margin-bottom: 15px;">
-                                <div class="botoes-acao">
-                                    <button class="btn-curtir" onclick="darLike(${post.midia_id}, this)">⚡ Dar Props</button>
-                                    <button class="btn-comentar" onclick="toggleComentarios(${post.midia_id})">💬 Comentar</button>
-                                </div>
-                                <span class="curtidas-count">${post.curtidas || 0} props</span>
-                            </div>
-                            
-                            <div class="bio" style="margin-bottom: 10px;">
-                                <strong style="color: #fff; cursor: pointer;" onclick="window.location.href='perfil.html?id=${post.skatista_id}'">${post.apelido || post.nome_completo}:</strong> 
-                                <span style="color: #ccc;">${post.legenda || ''}</span>
-                            </div>
-
-                            <div class="local-arroba" style="font-size: 0.8rem;">
-                                📍 ${post.cidade_estado || 'Local desconhecido'} | 📅 ${new Date(post.data_publicacao).toLocaleDateString('pt-BR')}
-                            </div>
-
-                            <!-- SEÇÃO DE COMENTÁRIOS (Oculta por padrão) -->
-                            <div class="comentarios-section" id="secao-comentarios-${post.midia_id}">
-                                <div class="lista-comentarios" id="lista-comentarios-${post.midia_id}">
-                                    <p style="color: #555; text-align: center; font-size: 0.8rem;">A carregar...</p>
-                                </div>
-                                <form class="form-comentario" onsubmit="enviarComentario(event, ${post.midia_id})">
-                                    <input type="text" id="input-comentario-${post.midia_id}" class="input-comentario" placeholder="Adicione um comentário..." required autocomplete="off">
-                                    <button type="submit" class="btn-enviar-comentario">Publicar</button>
-                                </form>
-                            </div>
-
-                        </div>
-                    `;
-                    container.appendChild(card);
-                });
-            } catch (erro) {
-                console.error('Erro:', erro);
-                container.innerHTML = '<p class="msg-carregando" style="color: var(--verde-neon);">Erro: O servidor Node está rodando?</p>';
-            }
-        }
-
-        // ==========================================
-        // FUNÇÃO DE CURTIR (Agora com Token)
-        // ==========================================
-        async function darLike(idMidia, botaoElemento) {
-            const token = localStorage.getItem('tokenInstoke');
-            
-            if (!token) {
-                alert("Você precisa fazer login para dar props!");
-                window.location.href = "login.html";
-                return;
-            }
-
-            try {
-                const resposta = await fetch(`${API_URL}/midias/${idMidia}/curtir`, { 
-                    method: 'PUT',
-                    headers: {
-                        'authorization': token // Enviando a pulseira VIP
-                    }
-                });
-                
-                if (resposta.ok) {
-                    const footer = botaoElemento.closest('.card-footer');
-                    const spanCurtidas = footer.querySelector('.curtidas-count');
-                    
-                    let curtidasAtuais = parseInt(spanCurtidas.innerText);
-                    spanCurtidas.innerText = `${curtidasAtuais + 1} props`;
-                    
-                    botaoElemento.style.backgroundColor = 'var(--verde-neon)';
-                    botaoElemento.style.color = '#000';
-                    botaoElemento.innerText = '⚡ Props Dados!';
-                    botaoElemento.disabled = true;
-                } else {
-                    alert("Erro ao curtir. Sua sessão pode ter expirado, faça login novamente.");
-                }
-            } catch (erro) {
-                console.error('Erro ao processar:', erro);
-            }
-        }
-
-        // ==========================================
-        // SISTEMA DE COMENTÁRIOS
-        // ==========================================
-
-        function toggleComentarios(midiaId) {
-            const secao = document.getElementById(`secao-comentarios-${midiaId}`);
-            
-            if (secao.style.display === 'block') {
-                secao.style.display = 'none'; 
-            } else {
-                secao.style.display = 'block'; 
-                carregarComentarios(midiaId); 
-                
-                setTimeout(() => {
-                    document.getElementById(`input-comentario-${midiaId}`).focus();
-                }, 100);
-            }
-        }
-
-        async function carregarComentarios(midiaId) {
-            const listaDiv = document.getElementById(`lista-comentarios-${midiaId}`);
-            listaDiv.innerHTML = '<p style="color: #555; text-align: center; font-size: 0.8rem;">A carregar comentários... ⏳</p>';
-
-            try {
-                const resposta = await fetch(`${API_URL}/midias/${midiaId}/comentarios`);
-                const comentarios = await resposta.json();
-
-                if (comentarios.length === 0) {
-                    listaDiv.innerHTML = '<p style="color: #555; font-size: 0.85rem;">Seja o primeiro a comentar!</p>';
-                    return;
-                }
-
-                listaDiv.innerHTML = ''; 
-                
-                comentarios.forEach(c => {
-                    const div = document.createElement('div');
-                    div.className = 'comentario-item';
-                    div.innerHTML = `
-                        <strong onclick="window.location.href='perfil.html?id=${c.skatista_id || ''}'">${c.apelido || c.nome_completo}:</strong> 
-                        <span>${c.texto}</span>
-                    `;
-                    listaDiv.appendChild(div);
-                });
-
-                listaDiv.scrollTop = listaDiv.scrollHeight;
-
-            } catch (erro) {
-                console.error("Erro ao carregar comentários:", erro);
-                listaDiv.innerHTML = '<p style="color: #ff3333; font-size: 0.85rem;">Erro ao carregar comentários.</p>';
-            }
-        }
-
-        // Enviar novo comentário (Agora com Token e sem Skatista_ID no body)
-        async function enviarComentario(evento, midiaId) {
-            evento.preventDefault(); 
-
-            const token = localStorage.getItem('tokenInstoke');
-            
-            if (!token) {
-                alert("Você precisa fazer login para comentar!");
-                window.location.href = "login.html";
-                return;
-            }
-
-            const inputField = document.getElementById(`input-comentario-${midiaId}`);
-            const texto = inputField.value.trim();
-
-            if (!texto) return;
-
-            try {
-                const resposta = await fetch(`${API_URL}/midias/${midiaId}/comentarios`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'authorization': token // Enviando a pulseira VIP
-                    },
-                    // Não precisa mais enviar o skatista_id, o backend descobre pelo token!
-                    body: JSON.stringify({
-                        texto: texto
-                    })
-                });
-
-                if (resposta.ok) {
-                    inputField.value = ''; 
-                    carregarComentarios(midiaId); 
-                } else {
-                    alert("Erro ao enviar o comentário. Sua sessão pode ter expirado.");
-                }
-            } catch (erro) {
-                console.error("Erro ao enviar comentário:", erro);
-            }
-        }
-
-        // Barra de pesquisa
-        document.getElementById('campo-pesquisa').addEventListener('input', function(evento) {
-            const textoPesquisado = removerAcentos(evento.target.value).toLowerCase().trim();
-            const todosOsCards = document.querySelectorAll('.card');
-            let encontrouAlguem = false;
-
-            todosOsCards.forEach(card => {
-                const textoOcultoDoCard = card.getAttribute('data-busca');
-
-                if (textoOcultoDoCard && textoOcultoDoCard.includes(textoPesquisado)) {
-                    card.style.display = 'flex';
-                    encontrouAlguem = true;
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-
-            let mensagemErro = document.getElementById('erro-pesquisa');
-            if (!encontrouAlguem && textoPesquisado !== '') {
-                if (!mensagemErro) {
-                    mensagemErro = document.createElement('p');
-                    mensagemErro.id = 'erro-pesquisa';
-                    mensagemErro.className = 'msg-carregando';
-                    mensagemErro.innerText = 'Nenhum post encontrado na pesquisa...';
-                    document.getElementById('feed').appendChild(mensagemErro);
-                }
-            } else if (mensagemErro) {
-                mensagemErro.remove();
-            }
+            container.appendChild(card);
         });
+    } catch (erro) {
+        console.error('Erro ao carregar feed:', erro);
+        container.innerHTML = '<p class="msg-carregando" style="color: var(--verde-neon);">Erro ao conectar com o servidor. Verifique se o Node está rodando.</p>';
+    }
+}
+
+// FUNÇÃO DE CURTIR
+async function darLike(idMidia, botaoElemento) {
+    const token = localStorage.getItem('tokenInstoke');
+    if (!token) {
+        alert("Você precisa fazer login para dar props!");
+        window.location.href = "login.html";
+        return;
+    }
+    try {
+        const resposta = await fetch(`${API_URL}/midias/${idMidia}/curtir`, { 
+            method: 'PUT',
+            headers: { 'authorization': token }
+        });
+        
+        if (resposta.ok) {
+            const footer = botaoElemento.closest('.card-footer');
+            const spanCurtidas = footer.querySelector('.curtidas-count');
+            let curtidasAtuais = parseInt(spanCurtidas.innerText);
+            spanCurtidas.innerText = `${curtidasAtuais + 1} props`;
+            
+            botaoElemento.style.backgroundColor = 'var(--verde-neon)';
+            botaoElemento.style.color = '#000';
+            botaoElemento.innerText = '⚡ Props Dados!';
+            botaoElemento.disabled = true;
+        }
+    } catch (erro) { console.error('Erro ao processar:', erro); }
+}
+
+// SISTEMA DE COMENTÁRIOS
+function toggleComentarios(midiaId) {
+    const secao = document.getElementById(`secao-comentarios-${midiaId}`);
+    if (secao.style.display === 'block') {
+        secao.style.display = 'none'; 
+    } else {
+        secao.style.display = 'block'; 
+        carregarComentarios(midiaId); 
+        setTimeout(() => document.getElementById(`input-comentario-${midiaId}`).focus(), 100);
+    }
+}
+
+async function carregarComentarios(midiaId) {
+    const listaDiv = document.getElementById(`lista-comentarios-${midiaId}`);
+    if (!listaDiv) return;
+
+    listaDiv.innerHTML = '<p style="color: #555; text-align: center; font-size: 0.8rem;">A carregar comentários... ⏳</p>';
+
+    try {
+        // Certifique-se de que ${API_URL} está presente aqui:
+        const resposta = await fetch(`${API_URL}/midias/${midiaId}/comentarios`);
+        
+        if (!resposta.ok) throw new Error('Falha ao buscar comentários');
+        
+        const comentarios = await resposta.json();
+
+        if (!comentarios || comentarios.length === 0) {
+            listaDiv.innerHTML = '<p style="color: #555; font-size: 0.85rem;">Seja o primeiro a comentar!</p>';
+            return;
+        }
+
+        listaDiv.innerHTML = ''; 
+        
+        comentarios.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'comentario-item';
+            div.innerHTML = `
+                <strong onclick="window.location.href='perfil.html?id=${c.skatista_id || ''}'">${c.apelido || c.nome_completo || 'Atleta'}:</strong> 
+                <span>${c.texto}</span>
+            `;
+            listaDiv.appendChild(div);
+        });
+
+        listaDiv.scrollTop = listaDiv.scrollHeight;
+
+    } catch (erro) {
+        console.error("Erro ao carregar comentários:", erro);
+        listaDiv.innerHTML = '<p style="color: #ff3333; font-size: 0.85rem;">Erro ao carregar comentários.</p>';
+    }
+}
+
+async function enviarComentario(evento, midiaId) {
+    evento.preventDefault(); 
+    const token = localStorage.getItem('tokenInstoke');
+    
+    if (!token) {
+        alert("Você precisa fazer login para comentar!");
+        window.location.href = "login.html";
+        return;
+    }
+
+    const inputField = document.getElementById(`input-comentario-${midiaId}`);
+    const texto = inputField.value.trim();
+    if (!texto) return;
+
+    try {
+        const resposta = await fetch(`${API_URL}/midias/${midiaId}/comentarios`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'authorization': token 
+            },
+            body: JSON.stringify({ texto: texto })
+        });
+        if (resposta.ok) {
+            inputField.value = ''; 
+            carregarComentarios(midiaId); 
+        }
+    } catch (erro) { console.error("Erro ao enviar comentário:", erro); }
+}
+
+// Barra de pesquisa
+document.getElementById('campo-pesquisa').addEventListener('input', function(evento) {
+    const textoPesquisado = removerAcentos(evento.target.value).toLowerCase().trim();
+    const todosOsCards = document.querySelectorAll('.card');
+    let encontrouAlguem = false;
+
+    todosOsCards.forEach(card => {
+        const textoOcultoDoCard = card.getAttribute('data-busca');
+        if (textoOcultoDoCard && textoOcultoDoCard.includes(textoPesquisado)) {
+            card.style.display = 'flex';
+            encontrouAlguem = true;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    let mensagemErro = document.getElementById('erro-pesquisa');
+    if (!encontrouAlguem && textoPesquisado !== '') {
+        if (!mensagemErro) {
+            mensagemErro = document.createElement('p');
+            mensagemErro.id = 'erro-pesquisa';
+            mensagemErro.className = 'msg-carregando';
+            mensagemErro.innerText = 'Nenhum post encontrado na pesquisa...';
+            document.getElementById('feed').appendChild(mensagemErro);
+        }
+    } else if (mensagemErro) {
+        mensagemErro.remove();
+    }
+});
     </script>
 </body>
 </html>

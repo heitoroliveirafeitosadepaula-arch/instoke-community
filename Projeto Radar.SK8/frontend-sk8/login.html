@@ -60,47 +60,44 @@
     </div>
 
     <script>
-        // O MESMO IP QUE VOCÊ USA NO INDEX.HTML
-        const API_URL = "http://192.168.1.6:3000"; // Se o seu IP for diferente, ajuste aqui!
+       document.getElementById('formLogin').addEventListener('submit', async function(evento) {
+    evento.preventDefault(); 
 
-        document.getElementById('formLogin').addEventListener('submit', async function(evento) {
-            evento.preventDefault(); 
+    const btn = document.querySelector('.btn-submit');
+    btn.innerText = "A verificar... ⏳";
+    btn.disabled = true;
 
-            const btn = document.querySelector('.btn-submit');
-            btn.innerText = "A verificar... ⏳";
-            btn.disabled = true;
+    const email = document.getElementById('email').value.trim();
+    const senha = document.getElementById('senha').value;
 
-            const email = document.getElementById('email').value.trim();
-            const senha = document.getElementById('senha').value;
-
-            try {
-                // CORRIGIDO: Agora usa o IP da rede em vez de localhost
-                const resposta = await fetch(`${API_URL}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, senha })
-                });
-
-                const resultado = await resposta.json();
-
-                if (resposta.ok) {
-                    localStorage.setItem('tokenInstoke', resultado.token);
-                    localStorage.setItem('usuarioLogado', JSON.stringify(resultado.usuario));
-                    
-                    alert("✅ " + resultado.mensagem);
-                    window.location.href = "/"; // Volta pro Feed
-                } else {
-                    alert("❌ " + resultado.erro);
-                    btn.innerText = "Acessar o Radar 🛹";
-                    btn.disabled = false;
-                }
-            } catch (erro) {
-                console.error("Erro na requisição:", erro);
-                alert("❌ Erro ao conectar com o servidor.");
-                btn.innerText = "Acessar o Radar 🛹";
-                btn.disabled = false;
-            }
+    try {
+        // CORRIGIDO: Usa caminho relativo. O navegador entende que é no mesmo servidor!
+        const resposta = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, senha })
         });
+
+        const resultado = await resposta.json();
+
+        if (resposta.ok) {
+            localStorage.setItem('tokenInstoke', resultado.token);
+            localStorage.setItem('usuarioLogado', JSON.stringify(resultado.usuario));
+            
+            alert("✅ " + resultado.mensagem);
+            window.location.href = "/"; // Volta pro Feed
+        } else {
+            alert("❌ " + resultado.erro);
+            btn.innerText = "Acessar o Radar 🛹";
+            btn.disabled = false;
+        }
+    } catch (erro) {
+        console.error("Erro na requisição:", erro);
+        alert("❌ Erro ao conectar com o servidor.");
+        btn.innerText = "Acessar o Radar 🛹";
+        btn.disabled = false;
+    }
+});
     </script>
 </body>
 </html>
