@@ -28,14 +28,25 @@ app.get('/', (req, res) => {
 // ==========================================
 // CONEXÃO COM O BANCO DE DADOS
 // ==========================================
-const db = mysql.createPool({ 
-    host: '127.0.0.1',
-    user: 'root',
-    password: '',
-    database: 'radar.sk8',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+// Substitua o 'createConnection' por 'createPool'
+const db = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'sua_senha_aqui',
+  database: process.env.DB_NAME || 'stoke_db',
+  waitForConnections: true,
+  connectionLimit: 10, // Limite seguro para o banco
+  queueLimit: 0
+});
+
+// Seu teste original com getConnection agora vai funcionar perfeitamente
+db.getConnection((erro, connection) => {
+  if (erro) {
+    console.error('Erro na conexão com o banco de dados:', erro);
+    return;
+  }
+  console.log('Conectado ao MySQL com sucesso! 🛹');
+  connection.release(); // Libera a conexão de volta para o Pool após testar
 });
 
 db.getConnection((erro, connection) => {

@@ -2,10 +2,10 @@
   "name": "projeto-radar.sk8",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "serversk8.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon serversk8.js"
+    "dev": "npx nodemon -L serversk8.js"
   },
   "keywords": [],
   "author": "",
