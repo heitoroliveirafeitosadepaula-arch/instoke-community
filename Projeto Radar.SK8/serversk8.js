@@ -1,3 +1,6 @@
+// ==========================================
+// IMPORTAÇÕES E CONFIGURAÇÕES INICIAIS
+// ==========================================
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2'); 
@@ -15,38 +18,21 @@ app.use(cors());
 app.use(express.json({ limit: '128mb' })); 
 app.use(express.urlencoded({ limit: '128mb', extended: true }));
 
-const pastaFrontend = path.join(__dirname, '../frontend-sk8');
+// Configura a pasta do frontend para arquivos estáticos
+const pastaFrontend = path.join(__dirname, 'frontend-sk8');
 app.use(express.static(pastaFrontend)); 
 
 // ==========================================
-// ROTA PRINCIPAL
+// CONEXÃO COM O BANCO DE DADOS (POOL)
 // ==========================================
-app.get('/', (req, res) => {
-    res.sendFile(path.join(pastaFrontend, 'index.html'));
-});
-
-// ==========================================
-// CONEXÃO COM O BANCO DE DADOS
-// ==========================================
-// Substitua o 'createConnection' por 'createPool'
 const db = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || 'sua_senha_aqui',
   database: process.env.DB_NAME || 'stoke_db',
   waitForConnections: true,
-  connectionLimit: 10, // Limite seguro para o banco
+  connectionLimit: 10,
   queueLimit: 0
-});
-
-// Seu teste original com getConnection agora vai funcionar perfeitamente
-db.getConnection((erro, connection) => {
-  if (erro) {
-    console.error('Erro na conexão com o banco de dados:', erro);
-    return;
-  }
-  console.log('Conectado ao MySQL com sucesso! 🛹');
-  connection.release(); // Libera a conexão de volta para o Pool após testar
 });
 
 db.getConnection((erro, connection) => {
@@ -67,10 +53,15 @@ db.getConnection((erro, connection) => {
 });
 
 // ==========================================
+// ROTA PRINCIPAL (Frontend)
+// ==========================================
+app.get('/', (req, res) => {
+  res.sendFile(path.join(pastaFrontend, 'index.html'));
+});
+
+// ==========================================
 // ROTAS PÚBLICAS (NÃO PRECISAM DE TOKEN)
 // ==========================================
-
-// Feed, listar skatistas, perfis e picos continuam abertos para qualquer um ver
 app.get('/skatistas', (req, res) => {
     const sql = 'SELECT * FROM skatistas ORDER BY curtidas DESC, id DESC';
     db.query(sql, (erro, resultados) => {
@@ -133,7 +124,6 @@ app.get('/picos', (req, res) => {
 // ==========================================
 // SISTEMA DE USUÁRIOS E AUTENTICAÇÃO
 // ==========================================
-
 app.post('/skatistas', async (req, res) => {
     const { nome_completo, email, senha, apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, foto_perfil, biografia } = req.body;
     try {
@@ -176,12 +166,16 @@ app.post('/login', (req, res) => {
 // MIDDLEWARE: O "SEGURANÇA" DAS ROTAS
 // ==========================================
 function verificarToken(req, res, next) {
-    const token = req.headers['authorization'];
+    let token = req.headers['authorization'];
     if (!token) return res.status(403).json({ erro: "Acesso negado. Faça login." });
+
+    if (token.startsWith('Bearer ')) {
+        token = token.slice(7, token.length).trimLeft();
+    }
 
     jwt.verify(token, 'chave_secreta_da_stoke', (erro, decoded) => {
         if (erro) return res.status(401).json({ erro: "Sessão expirada ou inválida." });
-        req.userId = decoded.id; // Salva o ID extraído do token para a rota usar
+        req.userId = decoded.id; 
         next(); 
     });
 }
@@ -189,11 +183,9 @@ function verificarToken(req, res, next) {
 // ==========================================
 // ROTAS PROTEGIDAS (EXIGEM LOGIN / TOKEN)
 // ==========================================
-
-// Criar Pico Seguro (Usando ID do token)
 app.post('/picos', verificarToken, (req, res) => {
     const { nome, descricao, latitude, longitude } = req.body;
-    const criado_por = req.userId; // Vem do token, 100% seguro!
+    const criado_por = req.userId; 
     
     const sql = 'INSERT INTO picos (nome, descricao, latitude, longitude, criado_por) VALUES (?, ?, ?, ?, ?)';
     db.query(sql, [nome, descricao, latitude, longitude, criado_por], (erro, resultados) => {
@@ -202,10 +194,9 @@ app.post('/picos', verificarToken, (req, res) => {
     });
 });
 
-// Postar Mídia Segura (Usando ID do token)
 app.post('/midias', verificarToken, (req, res) => {
     const { tipo, arquivo_base64, url_video, legenda } = req.body;
-    const skatista_id = req.userId; // Vem do token!
+    const skatista_id = req.userId; 
     
     const sql = 'INSERT INTO midias (skatista_id, tipo, arquivo_base64, url_video, legenda) VALUES (?, ?, ?, ?, ?)';
     db.query(sql, [skatista_id, tipo, arquivo_base64, url_video, legenda], (erro, resultados) => {
@@ -214,11 +205,10 @@ app.post('/midias', verificarToken, (req, res) => {
     });
 });
 
-// Comentar Seguro (Usando ID do token)
 app.post('/midias/:id/comentarios', verificarToken, (req, res) => {
     const midia_id = req.params.id;
     const { texto } = req.body;
-    const skatista_id = req.userId; // Vem do token!
+    const skatista_id = req.userId; 
 
     if (!texto) return res.status(400).json({ erro: 'O texto é obrigatório.' });
 
@@ -229,11 +219,9 @@ app.post('/midias/:id/comentarios', verificarToken, (req, res) => {
     });
 });
 
-// Editar Perfil Seguro (Impede de editar perfil dos outros)
 app.put('/skatistas/:id', verificarToken, (req, res) => {
     const idSkatista = req.params.id;
     
-    // TRAVA DE SEGURANÇA: O cara logado está tentando editar o próprio perfil?
     if (req.userId !== parseInt(idSkatista)) {
         return res.status(403).json({ erro: 'Você não tem permissão para alterar este perfil.' });
     }
@@ -247,7 +235,6 @@ app.put('/skatistas/:id', verificarToken, (req, res) => {
     });
 });
 
-// Curtir Mídia Seguro (Exige estar logado)
 app.put('/midias/:id/curtir', verificarToken, (req, res) => {
     const sql = 'UPDATE midias SET curtidas = curtidas + 1 WHERE id = ?';
     db.query(sql, [req.params.id], (erro) => {
@@ -256,7 +243,6 @@ app.put('/midias/:id/curtir', verificarToken, (req, res) => {
     });
 });
 
-// Curtir Skatista Seguro (Exige estar logado)
 app.put('/skatistas/:id/curtir', verificarToken, (req, res) => {
     const sql = 'UPDATE skatistas SET curtidas = curtidas + 1 WHERE id = ?';
     db.query(sql, [req.params.id], (erro) => {
@@ -265,7 +251,6 @@ app.put('/skatistas/:id/curtir', verificarToken, (req, res) => {
     });
 });
 
-// Cadastrar Marca Seguro (Exige estar logado)
 app.post('/marcas', verificarToken, (req, res) => {
     const { nome_marca, segmento, instagram_marca, site_url, email_contato, descricao_marca, logo_marca } = req.body;
     const sql = `INSERT INTO marcas (nome_marca, segmento, instagram_marca, site_url, email_contato, descricao_marca, logo_marca) VALUES (?, ?, ?, ?, ?, ?, ?)`;
@@ -279,6 +264,5 @@ app.post('/marcas', verificarToken, (req, res) => {
 // INICIALIZAÇÃO DO SERVIDOR
 // ==========================================
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Instoke API no ar na porta ${PORT} 🔥`);
+  console.log(`Instoke API no ar na porta ${PORT} 🔥`);
 });
-
