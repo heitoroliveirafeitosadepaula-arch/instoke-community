@@ -270,3 +270,4 @@ app.post('/marcas', verificarToken, (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Instoke API no ar na porta ${PORT} 🔥`);
 });
+
