@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Perfil - Stoke Community</title>
+    <title>Editar Perfil - Instoke</title>
     <style>
         :root {
             --verde-neon: #00ff55;
@@ -13,221 +13,380 @@
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--fundo-escuro); color: #ffffff; padding: 20px; display: flex; justify-content: center; }
+        body { background-color: var(--fundo-escuro); color: #ffffff; padding-bottom: 60px; }
 
-        .container { background-color: var(--fundo-card); border: 1px solid var(--borda); border-radius: 12px; padding: 30px; width: 100%; max-width: 600px; margin-top: 20px; }
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 40px; border-bottom: 1px solid var(--borda);
+            position: sticky; top: 0; background-color: var(--fundo-escuro); z-index: 10;
+        }
+        header h1 { color: var(--verde-neon); font-size: 1.5rem; font-weight: 900; cursor: pointer; }
 
-        h1 { color: var(--verde-neon); text-align: center; margin-bottom: 20px; font-weight: 900; letter-spacing: 1px; }
-        .voltar { color: #aaa; text-decoration: none; display: block; margin-bottom: 20px; font-weight: bold; }
-        .voltar:hover { color: var(--verde-neon); }
+        .btn-voltar {
+            background: transparent; color: #aaa; border: 1px solid #aaa;
+            padding: 8px 20px; border-radius: 20px; font-weight: bold;
+            cursor: pointer; text-decoration: none; transition: 0.3s;
+        }
+        .btn-voltar:hover { border-color: var(--verde-neon); color: var(--verde-neon); }
 
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .form-group { margin-bottom: 15px; }
-        .full-width { grid-column: span 2; }
-        
-        @media (max-width: 500px) {
-            .form-grid { grid-template-columns: 1fr; }
-            .full-width { grid-column: span 1; }
+        main { display: flex; justify-content: center; padding: 40px 20px; }
+
+        .form-card {
+            background-color: var(--fundo-card);
+            border: 1px solid var(--borda);
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
         }
 
-        label { display: block; margin-bottom: 5px; color: #ccc; font-weight: bold; font-size: 0.9rem; }
-        input, select, textarea { width: 100%; padding: 12px; background-color: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; transition: 0.3s; }
-        input:focus, select:focus, textarea:focus { border-color: var(--verde-neon); }
-        textarea { resize: vertical; min-height: 80px; }
+        .form-card h2 {
+            color: var(--verde-neon);
+            margin-bottom: 25px;
+            font-size: 1.5rem;
+            text-align: center;
+        }
 
-        .btn-submit { width: 100%; background-color: var(--verde-neon); color: #000; border: none; padding: 15px; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-        .btn-submit:hover { opacity: 0.8; }
+        /* ÁREA DE PREVIEW DA FOTO */
+        .foto-upload-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 12px;
+        }
+
+        .preview-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 3px solid var(--verde-neon);
+            background-color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            overflow: hidden;
+        }
+
+        .preview-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .label-upload {
+            background: transparent;
+            border: 1px solid var(--verde-neon);
+            color: var(--verde-neon);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .label-upload:hover {
+            background: var(--verde-neon);
+            color: #000;
+        }
+
+        #input-foto { display: none; }
+
+        /* CAMPOS DO FORMULÁRIO */
+        .grupo-form {
+            margin-bottom: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .linha-dupla {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        label {
+            color: #ccc;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            background-color: #181818;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--verde-neon);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .btn-salvar {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--verde-neon);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 900;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-salvar:hover { opacity: 0.85; }
+        .btn-salvar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .msg-status {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+
+        @media (max-width: 550px) {
+            .linha-dupla { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <a href="index.html" class="voltar" id="btn-voltar">&larr; Voltar</a>
-        <h1>MEU MEDIA KIT</h1>
+    <header>
+        <h1 onclick="window.location.href='index.html'">Instoke</h1>
+        <a href="#" id="link-voltar" class="btn-voltar">← Voltar ao Perfil</a>
+    </header>
 
-        <form id="formEditar">
-            <p style="text-align:center; color:#888;" id="carregando">A buscar os teus dados... ⏳</p>
-            
-            <div id="campos-form" style="display: none;">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Apelido / Vulgo</label>
-                        <input type="text" id="apelido">
-                    </div>
-                    <div class="form-group">
-                        <label>Cidade e Estado</label>
-                        <input type="text" id="cidade_estado">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Base</label>
-                        <select id="base">
-                            <option value="Goofy">Goofy</option>
-                            <option value="Regular">Regular</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Modalidade Principal</label>
-                        <input type="text" id="modalidade" placeholder="Ex: Street, Bowl, Downhill">
-                    </div>
+    <main>
+        <div class="form-card">
+            <h2>Editar Perfil ⚙️</h2>
 
-                    <div class="form-group">
-                        <label>Nível Atual</label>
-                        <select id="nivel_atual">
-                            <option value="Iniciante">Iniciante</option>
-                            <option value="Amador">Amador</option>
-                            <option value="Profissional">Profissional</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Instagram (@)</label>
-                        <input type="text" id="instagram_arroba" placeholder="Ex: stokecommunity">
-                    </div>
+            <form id="form-editar-perfil">
+                <div class="foto-upload-container">
+                    <div class="preview-avatar" id="preview-container">🛹</div>
+                    <label for="input-foto" class="label-upload">📸 Trocar Foto de Perfil</label>
+                    <input type="file" id="input-foto" name="foto_perfil" accept="image/*">
+                </div>
 
-                    <div class="form-group">
-                        <label>Tamanho do Shape</label>
-                        <input type="text" id="tamanho_shape" placeholder="Ex: 8.0, 8.25">
+                <div class="linha-dupla">
+                    <div class="grupo-form">
+                        <label for="apelido">Apelido (Vulgo)</label>
+                        <input type="text" id="apelido" name="apelido" placeholder="Ex: Chorão, Gui...">
                     </div>
-                    <div class="form-group">
-                        <label>Marca de Truck Favorita</label>
-                        <input type="text" id="marca_truck_favorita" placeholder="Ex: Independent">
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label>Vídeo Destaque (URL do YouTube)</label>
-                        <input type="url" id="video_destaque" placeholder="Link para a tua melhor video part">
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label>Biografia</label>
-                        <textarea id="biografia" placeholder="Fala um pouco sobre ti e a tua caminhada no skate..."></textarea>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label>Nova Foto de Perfil (deixa em branco para manter a atual)</label>
-                        <input type="file" id="foto_perfil" accept="image/*">
+                    <div class="grupo-form">
+                        <label for="cidade_estado">Cidade / Estado</label>
+                        <input type="text" id="cidade_estado" name="cidade_estado" placeholder="Ex: Guarujá - SP">
                     </div>
                 </div>
 
-                <button type="submit" class="btn-submit">Guardar Alterações 🛹</button>
-            </div>
-        </form>
-    </div>
+                <div class="linha-dupla">
+                    <div class="grupo-form">
+                        <label for="base">Base no Skate</label>
+                        <select id="base" name="base">
+                            <option value="Regular">Regular</option>
+                            <option value="Goofy">Goofy</option>
+                            <option value="Mongo">Mongo</option>
+                        </select>
+                    </div>
+                    <div class="grupo-form">
+                        <label for="modalidade">Modalidade</label>
+                        <input type="text" id="modalidade" name="modalidade" placeholder="Ex: Street, Bowl, Park, Vert">
+                    </div>
+                </div>
+
+                <div class="linha-dupla">
+                    <div class="grupo-form">
+                        <label for="nivel_atual">Nível Atual</label>
+                        <select id="nivel_atual" name="nivel_atual">
+                            <option value="Iniciante">Iniciante</option>
+                            <option value="Amador">Amador</option>
+                            <option value="Flow">Flow</option>
+                            <option value="Pro">Pro</option>
+                            <option value="Old School">Old School / Master</option>
+                        </select>
+                    </div>
+                    <div class="grupo-form">
+                        <label for="instagram_arroba">Instagram (@)</label>
+                        <input type="text" id="instagram_arroba" name="instagram_arroba" placeholder="Ex: @seu_insta">
+                    </div>
+                </div>
+
+                <div class="linha-dupla">
+                    <div class="grupo-form">
+                        <label for="tamanho_shape">Tamanho do Shape</label>
+                        <input type="text" id="tamanho_shape" name="tamanho_shape" placeholder="Ex: 8.0, 8.25, 8.5">
+                    </div>
+                    <div class="grupo-form">
+                        <label for="marca_truck_favorita">Setup / Truck Favorito</label>
+                        <input type="text" id="marca_truck_favorita" name="marca_truck_favorita" placeholder="Ex: Independent, Crail, Intruder">
+                    </div>
+                </div>
+
+                <div class="grupo-form">
+                    <label for="video_destaque">Link de Vídeo Destaque (YouTube)</label>
+                    <input type="url" id="video_destaque" name="video_destaque" placeholder="https://www.youtube.com/watch?v=...">
+                </div>
+
+                <div class="grupo-form">
+                    <label for="biografia">Biografia / Setup / Crew</label>
+                    <textarea id="biografia" name="biografia" placeholder="Fale sobre seu rolê, picos favoritos ou sua crew..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-salvar" id="btn-salvar">💾 Salvar Alterações</button>
+                <div class="msg-status" id="msg-status"></div>
+            </form>
+        </div>
+    </main>
 
     <script>
-        const API_URL = "";
-        let fotoBase64Atual = null;
+        const API_URL = window.location.origin.includes('3000') 
+            ? window.location.origin 
+            : "http://localhost:3000";
+
+        let idSkatista = null;
+        let fotoAtualNoBanco = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('tokenInstoke');
             const usuarioString = localStorage.getItem('usuarioLogado');
-            
-            // Segurança: redireciona para login se não estiver autenticado
-            if (!usuarioString) {
-                alert("Precisas fazer login primeiro!");
+
+            if (!token || !usuarioString) {
+                alert("Faça login para editar seu perfil!");
                 window.location.href = "login.html";
                 return;
             }
 
-            const usuario = JSON.parse(usuarioString);
-            
-            // Configurar botão voltar para retornar diretamente ao perfil
-            const btnVoltar = document.getElementById('btn-voltar');
-            btnVoltar.href = `perfil.html?id=${usuario.id}`;
-            btnVoltar.innerHTML = "&larr; Ver Meu Perfil";
-            
+            const usuarioLogado = JSON.parse(usuarioString);
+            const params = new URLSearchParams(window.location.search);
+            idSkatista = params.get('id') || usuarioLogado.id;
+
+            // Garante que o botão voltar leve de volta para o perfil certo
+            document.getElementById('link-voltar').href = `perfil.html?id=${idSkatista}`;
+
+            // Carrega os dados atuais do skatista no formulário
             try {
-                const resposta = await fetch(`${API_URL}/skatistas/${usuario.id}`);
-                if (!resposta.ok) throw new Error('Erro ao buscar dados');
-                
-                const dados = await resposta.json();
-                
-                document.getElementById('apelido').value = dados.apelido || '';
-                document.getElementById('cidade_estado').value = dados.cidade_estado || '';
-                document.getElementById('base').value = dados.base || 'Goofy';
-                document.getElementById('modalidade').value = dados.modalidade || '';
-                document.getElementById('nivel_atual').value = dados.nivel_atual || 'Iniciante';
-                document.getElementById('instagram_arroba').value = dados.instagram_arroba || '';
-                document.getElementById('tamanho_shape').value = dados.tamanho_shape || '';
-                document.getElementById('marca_truck_favorita').value = dados.marca_truck_favorita || '';
-                document.getElementById('video_destaque').value = dados.video_destaque || '';
-                document.getElementById('biografia').value = dados.biografia || '';
-                
-                fotoBase64Atual = dados.foto_perfil; 
+                const res = await fetch(`${API_URL}/skatistas/${idSkatista}`);
+                if (!res.ok) throw new Error("Erro ao buscar dados do perfil.");
+                const skatista = await res.json();
 
-                document.getElementById('carregando').style.display = 'none';
-                document.getElementById('campos-form').style.display = 'block';
+                document.getElementById('apelido').value = skatista.apelido || '';
+                document.getElementById('cidade_estado').value = skatista.cidade_estado || '';
+                document.getElementById('base').value = skatista.base || 'Regular';
+                document.getElementById('modalidade').value = skatista.modalidade || '';
+                document.getElementById('nivel_atual').value = skatista.nivel_atual || 'Amador';
+                document.getElementById('instagram_arroba').value = skatista.instagram_arroba || '';
+                document.getElementById('tamanho_shape').value = skatista.tamanho_shape || '';
+                document.getElementById('marca_truck_favorita').value = skatista.marca_truck_favorita || '';
+                document.getElementById('video_destaque').value = skatista.video_destaque || '';
+                document.getElementById('biografia').value = skatista.biografia || '';
 
-            } catch (erro) {
-                console.error(erro);
-                document.getElementById('carregando').innerText = '❌ Erro ao carregar o perfil.';
-            }
-        });
+                fotoAtualNoBanco = skatista.foto_perfil || null;
 
-        document.getElementById('formEditar').addEventListener('submit', async function(evento) {
-            evento.preventDefault();
-
-            const btn = document.querySelector('.btn-submit');
-            btn.innerText = "A guardar... ⏳";
-            btn.disabled = true;
-
-            const usuario = JSON.parse(localStorage.getItem('usuarioLogado'));
-            const inputFoto = document.getElementById('foto_perfil');
-            let fotoFinal = fotoBase64Atual;
-
-            if (inputFoto.files.length > 0) {
-                const arquivo = inputFoto.files[0];
-                fotoFinal = await converterParaBase64(arquivo);
-            }
-
-            const dadosAtualizados = {
-                apelido: document.getElementById('apelido').value,
-                cidade_estado: document.getElementById('cidade_estado').value,
-                base: document.getElementById('base').value,
-                modalidade: document.getElementById('modalidade').value,
-                nivel_atual: document.getElementById('nivel_atual').value,
-                instagram_arroba: document.getElementById('instagram_arroba').value,
-                tamanho_shape: document.getElementById('tamanho_shape').value,
-                marca_truck_favorita: document.getElementById('marca_truck_favorita').value,
-                video_destaque: document.getElementById('video_destaque').value,
-                biografia: document.getElementById('biografia').value,
-                foto_perfil: fotoFinal
-            };
-
-            try {
-                const resposta = await fetch(`${API_URL}/skatistas/${usuario.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dadosAtualizados)
-                });
-
-                if (resposta.ok) {
-                    usuario.apelido = dadosAtualizados.apelido;
-                    usuario.foto = dadosAtualizados.foto_perfil;
-                    localStorage.setItem('usuarioLogado', JSON.stringify(usuario));
-
-                    alert("✅ Media Kit atualizado com sucesso!");
-                    window.location.href = `perfil.html?id=${usuario.id}`; // Retorna ao perfil atualizado
-                } else {
-                    const resultado = await resposta.json();
-                    alert("❌ Erro: " + resultado.erro);
+                if (skatista.foto_perfil) {
+                    let imgSrc = skatista.foto_perfil;
+                    if (imgSrc.startsWith('/uploads')) {
+                        imgSrc = `${API_URL}${imgSrc}`;
+                    } else if (!imgSrc.startsWith('http') && !imgSrc.startsWith('data:image')) {
+                        imgSrc = `data:image/jpeg;base64,${imgSrc}`;
+                    }
+                    document.getElementById('preview-container').innerHTML = `<img src="${imgSrc}" alt="Preview">`;
                 }
             } catch (erro) {
                 console.error(erro);
-                alert("❌ Erro ao conectar com o servidor.");
+                document.getElementById('msg-status').style.color = '#ff4500';
+                document.getElementById('msg-status').innerText = 'Erro ao carregar dados atuais.';
             }
-
-            btn.innerText = "Guardar Alterações 🛹";
-            btn.disabled = false;
         });
 
-        function converterParaBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = erro => reject(erro);
-            });
-        }
+        // Mostra preview da nova foto na hora que o usuário escolhe o arquivo
+        document.getElementById('input-foto').addEventListener('change', function(event) {
+            const arquivo = event.target.files[0];
+            if (arquivo) {
+                const urlTemp = URL.createObjectURL(arquivo);
+                document.getElementById('preview-container').innerHTML = `<img src="${urlTemp}" alt="Nova Foto">`;
+            }
+        });
+
+        // Envia a atualização para o backend via FormData (suporta texto + arquivo Multer)
+        document.getElementById('form-editar-perfil').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const token = localStorage.getItem('tokenInstoke');
+            const btnSalvar = document.getElementById('btn-salvar');
+            const msgStatus = document.getElementById('msg-status');
+
+            btnSalvar.disabled = true;
+            btnSalvar.innerText = 'Salvando... ⏳';
+            msgStatus.innerText = '';
+
+            const formData = new FormData();
+            formData.append('apelido', document.getElementById('apelido').value.trim());
+            formData.append('cidade_estado', document.getElementById('cidade_estado').value.trim());
+            formData.append('base', document.getElementById('base').value);
+            formData.append('modalidade', document.getElementById('modalidade').value.trim());
+            formData.append('nivel_atual', document.getElementById('nivel_atual').value);
+            formData.append('instagram_arroba', document.getElementById('instagram_arroba').value.trim());
+            formData.append('tamanho_shape', document.getElementById('tamanho_shape').value.trim());
+            formData.append('marca_truck_favorita', document.getElementById('marca_truck_favorita').value.trim());
+            formData.append('video_destaque', document.getElementById('video_destaque').value.trim());
+            formData.append('biografia', document.getElementById('biografia').value.trim());
+
+            const inputFoto = document.getElementById('input-foto');
+            if (inputFoto.files && inputFoto.files[0]) {
+                formData.append('foto_perfil', inputFoto.files[0]);
+            } else if (fotoAtualNoBanco) {
+                formData.append('foto_perfil', fotoAtualNoBanco);
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/skatistas/${idSkatista}`, {
+                    method: 'PUT',
+                    headers: {
+                        'authorization': token
+                    },
+                    body: formData
+                });
+
+                const resultado = await resposta.json();
+
+                if (!resposta.ok) {
+                    throw new Error(resultado.erro || 'Erro ao atualizar perfil.');
+                }
+
+                // Atualiza também o apelido no localStorage para o menu hambúrguer refletir na hora
+                const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || '{}');
+                usuarioLogado.apelido = document.getElementById('apelido').value.trim() || usuarioLogado.apelido;
+                localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+
+                msgStatus.style.color = 'var(--verde-neon)';
+                msgStatus.innerText = 'Perfil atualizado com sucesso! Redirecionando... 🛹';
+
+                setTimeout(() => {
+                    window.location.href = `perfil.html?id=${idSkatista}`;
+                }, 1000);
+
+            } catch (erro) {
+                console.error(erro);
+                msgStatus.style.color = '#ff4500';
+                msgStatus.innerText = erro.message;
+                btnSalvar.disabled = false;
+                btnSalvar.innerText = '💾 Salvar Alterações';
+            }
+        });
     </script>
 </body>
 </html>

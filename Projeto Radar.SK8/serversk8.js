@@ -405,14 +405,45 @@ app.put('/skatistas/:id', verificarToken, upload.single('foto_perfil'), (req, re
         return res.status(403).json({ erro: 'Você não tem permissão para alterar este perfil.' });
     }
 
-    const { apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, foto_perfil, biografia } = req.body;
-    const novaFoto = req.file ? `/uploads/${req.file.filename}` : foto_perfil;
+    const { 
+        apelido = '', cidade_estado = '', base = 'Regular', modalidade = '', 
+        nivel_atual = '', instagram_arroba = '', video_destaque = '', 
+        tamanho_shape = '', marca_truck_favorita = '', biografia = '', foto_perfil 
+    } = req.body;
 
-    const sql = `UPDATE skatistas SET apelido=?, cidade_estado=?, base=?, modalidade=?, nivel_atual=?, instagram_arroba=?, video_destaque=?, tamanho_shape=?, marca_truck_favorita=?, foto_perfil=?, biografia=? WHERE id=?`;
+    // Se enviou um arquivo novo pelo Multer, usa o caminho novo.
+    // Se não enviou arquivo novo, mantém a foto atual no banco usando COALESCE!
+    const novaFoto = req.file ? `/uploads/${req.file.filename}` : (foto_perfil || null);
 
-    db.query(sql, [apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, novaFoto, biografia, idSkatista], (erro) => {
-        if (erro) return res.status(500).json({ erro: 'Falha ao atualizar o perfil.' });
-        res.json({ mensagem: 'Perfil atualizado com sucesso! 🛹' });
+    const sql = `
+        UPDATE skatistas 
+        SET apelido = ?, 
+            cidade_estado = ?, 
+            base = ?, 
+            modalidade = ?, 
+            nivel_atual = ?, 
+            instagram_arroba = ?, 
+            video_destaque = ?, 
+            tamanho_shape = ?, 
+            marca_truck_favorita = ?, 
+            foto_perfil = COALESCE(?, foto_perfil), 
+            biografia = ? 
+        WHERE id = ?
+    `;
+
+    db.query(sql, [
+        apelido, cidade_estado, base, modalidade, nivel_atual, 
+        instagram_arroba, video_destaque, tamanho_shape, 
+        marca_truck_favorita, novaFoto, biografia, idSkatista
+    ], (erro) => {
+        if (erro) {
+            console.error("🔥 Erro ao atualizar perfil no MySQL:", erro);
+            return res.status(500).json({ erro: 'Falha ao atualizar o perfil.' });
+        }
+        res.json({ 
+            mensagem: 'Perfil atualizado com sucesso! 🛹',
+            foto_perfil: novaFoto
+        });
     });
 });
 
