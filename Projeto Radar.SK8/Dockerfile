@@ -1,20 +1,23 @@
-# Usa uma imagem oficial do Node.js leve
-FROM node:18-alpine
+# Usa imagem Debian slim (evita falhas de compilação do bcrypt que ocorrem no Alpine)
+FROM node:20-slim
 
 # Define o diretório de trabalho dentro do container
 WORKDIR /app
 
-# Copia os arquivos de dependência primeiro (para aproveitar o cache do Docker)
+# Copia os arquivos de dependência primeiro
 COPY package*.json ./
 
-# Instala as dependências
+# Instala as dependências limpas para a arquitetura do container
 RUN npm install
 
 # Copia o restante do código da aplicação
 COPY . .
 
-# Expõe a porta que a sua API roda (ex: 3000)
+# Garante que a pasta uploads exista dentro do container
+RUN mkdir -p /app/uploads
+
+# Expõe a porta da API
 EXPOSE 3000
 
-# Comando para iniciar a aplicação (ajuste para o seu script de dev, ex: npm run start)
+# Comando para iniciar a aplicação
 CMD ["npm", "run", "dev"]

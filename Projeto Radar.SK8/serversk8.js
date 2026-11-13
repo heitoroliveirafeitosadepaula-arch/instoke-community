@@ -11,14 +11,15 @@ const multer = require('multer');
 const fs = require('fs');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'chave_secreta_sk8';
 
 // ==========================================
 // CONFIGURAÇÃO DE UPLOAD DE ARQUIVOS (MULTER)
 // ==========================================
 const pastaUploads = path.join(__dirname, 'uploads');
 if (!fs.existsSync(pastaUploads)) {
-    fs.mkdirSync(pastaUploads);
+    fs.mkdirSync(pastaUploads, { recursive: true });
 }
 
 const storage = multer.diskStorage({
@@ -28,64 +29,141 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + extensao);
     }
 });
-const upload = multer({ storage }); // <-- É ESTA VARIÁVEL QUE O NODE ESTÁ PROCURANDO!
+const upload = multer({ storage });
 
 // ==========================================
 // MIDDLEWARES (Configurações Gerais)
 // ==========================================
 app.use(cors());
-app.use(express.json()); 
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' })); 
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Configura a pasta do frontend e a de uploads para servirem arquivos estáticos
-app.use(express.static(path.join(__dirname, 'frontend-sk8'))); 
-// Garanta que esta linha exata existe no seu serversk8.js:
+const pastaFrontend = path.join(__dirname, 'frontend-sk8');
+app.use(express.static(pastaFrontend)); 
 app.use('/uploads', express.static(pastaUploads));
 
 // ==========================================
 // CONEXÃO COM O BANCO DE DADOS (POOL)
 // ==========================================
+// Os valores padrão abaixo agora batem 100% com o docker-compose.yml
 const db = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'sua_senha_aqui',
-  database: process.env.DB_NAME || 'stoke_db',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || 'sua_senha_aqui', 
+    database: process.env.DB_NAME || 'stoke_db',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
-db.getConnection((erro, connection) => {
-    if (erro) {
-        console.error('Erro ao conectar ao banco de dados:', erro);
-        return;
-    }
-    console.log('Conectado ao banco de dados (Instoke) via POOL! Adeus quedas de conexão! 🛹');
-
-    connection.query("SET GLOBAL max_allowed_packet=134217728;", (err) => {
-        if (err) {
-            console.error("Aviso: Não foi possível forçar o limite via código:", err);
-        } else {
-            console.log("🔥 Limite do MySQL destravado para 128MB com sucesso!");
+// Inicialização segura e criação automática de tabelas se não existirem
+function inicializarBanco() {
+    db.getConnection((erro, connection) => {
+        if (erro) {
+            console.error('⏳ Banco ainda não disponível, tentando novamente em 3 segundos...', erro.message);
+            setTimeout(inicializarBanco, 3000);
+            return;
         }
+        console.log('Conectado ao banco de dados (Instoke) via POOL! 🛹');
+
+        connection.query("SET GLOBAL max_allowed_packet=134217728;", (err) => {
+            if (!err) console.log("🔥 Limite do MySQL destravado para 128MB!");
+        });
+
+        // Garante que as tabelas existam para não quebrar as rotas
+        const tabelas = [
+            `CREATE TABLE IF NOT EXISTS skatistas (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome_completo VARCHAR(150) NOT NULL,
+                email VARCHAR(150) NOT NULL UNIQUE,
+                senha VARCHAR(255) NOT NULL,
+                apelido VARCHAR(100) DEFAULT '',
+                cidade_estado VARCHAR(100) DEFAULT '',
+                base VARCHAR(30) DEFAULT 'Regular',
+                modalidade VARCHAR(100) DEFAULT '',
+                nivel_atual VARCHAR(50) DEFAULT '',
+                instagram_arroba VARCHAR(100) DEFAULT '',
+                video_destaque VARCHAR(255) DEFAULT '',
+                tamanho_shape VARCHAR(20) DEFAULT '',
+                marca_truck_favorita VARCHAR(100) DEFAULT '',
+                foto_perfil LONGTEXT,
+                biografia TEXT,
+                curtidas INT DEFAULT 0,
+                data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS midias (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                skatista_id INT NOT NULL,
+                tipo VARCHAR(30) DEFAULT 'imagem',
+                arquivo_base64 LONGTEXT,
+                url_video VARCHAR(255) DEFAULT NULL,
+                legenda TEXT,
+                curtidas INT DEFAULT 0,
+                data_publicacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (skatista_id) REFERENCES skatistas(id) ON DELETE CASCADE
+            )`,
+            `CREATE TABLE IF NOT EXISTS comentarios (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                midia_id INT NOT NULL,
+                skatista_id INT NOT NULL,
+                texto TEXT NOT NULL,
+                data_comentario TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (midia_id) REFERENCES midias(id) ON DELETE CASCADE,
+                FOREIGN KEY (skatista_id) REFERENCES skatistas(id) ON DELETE CASCADE
+            )`,
+            `CREATE TABLE IF NOT EXISTS picos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(150) NOT NULL,
+                descricao TEXT,
+                latitude DECIMAL(10, 8) NOT NULL,
+                longitude DECIMAL(11, 8) NOT NULL,
+                criado_por INT,
+                data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS marcas (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome_marca VARCHAR(150) NOT NULL,
+                segmento VARCHAR(100),
+                instagram_marca VARCHAR(100),
+                site_url VARCHAR(255),
+                email_contato VARCHAR(150),
+                descricao_marca TEXT,
+                logo_marca LONGTEXT,
+                data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`
+        ];
+
+        tabelas.forEach(sql => {
+            connection.query(sql, (errTabela) => {
+                if (errTabela) console.error("Erro ao verificar/criar tabela:", errTabela.message);
+            });
+        });
+
         connection.release();
     });
-});
+}
+
+inicializarBanco();
 
 // ==========================================
 // ROTA PRINCIPAL (Frontend)
 // ==========================================
-const pastaFrontend = path.join(__dirname, 'frontend-sk8'); // Garante que a pasta existe
-
 app.get('/', (req, res) => {
-  res.sendFile(path.join(pastaFrontend, 'index.html'));
+    res.sendFile(path.join(pastaFrontend, 'index.html'));
 });
 
 // ==========================================
 // ROTAS PÚBLICAS (NÃO PRECISAM DE TOKEN)
 // ==========================================
 app.get('/skatistas', (req, res) => {
-    const sql = 'SELECT * FROM skatistas ORDER BY curtidas DESC, id DESC';
+    // Segurança: Seleciona todos os campos EXCETO a senha
+    const sql = `
+        SELECT id, nome_completo, email, apelido, cidade_estado, base, modalidade, 
+               nivel_atual, instagram_arroba, video_destaque, tamanho_shape, 
+               marca_truck_favorita, foto_perfil, biografia, curtidas 
+        FROM skatistas 
+        ORDER BY curtidas DESC, id DESC
+    `;
     db.query(sql, (erro, resultados) => {
         if (erro) return res.status(500).json({ erro: 'Falha ao buscar skatistas.' });
         res.json(resultados);
@@ -101,7 +179,13 @@ app.get('/skatistas/:id/midias', (req, res) => {
 });
 
 app.get('/skatistas/:id', (req, res) => {
-    const sql = 'SELECT * FROM skatistas WHERE id = ?';
+    const sql = `
+        SELECT id, nome_completo, email, apelido, cidade_estado, base, modalidade, 
+               nivel_atual, instagram_arroba, video_destaque, tamanho_shape, 
+               marca_truck_favorita, foto_perfil, biografia, curtidas 
+        FROM skatistas 
+        WHERE id = ?
+    `;
     db.query(sql, [req.params.id], (erro, resultados) => {
         if (erro) return res.status(500).json({ erro: 'Erro ao buscar o skatista.' });
         if (resultados.length === 0) return res.status(404).json({ erro: 'Skatista não encontrado.' });
@@ -118,7 +202,10 @@ app.get('/feed', (req, res) => {
         ORDER BY m.data_publicacao DESC
     `;
     db.query(sql, (erro, resultados) => {
-        if (erro) return res.status(500).json({ erro: 'Erro ao buscar o feed.' });
+        if (erro) {
+            console.error("🔥 Erro na query do /feed:", erro);
+            return res.status(500).json({ erro: 'Erro ao buscar o feed.' });
+        }
         res.json(resultados);
     });
 });
@@ -158,7 +245,6 @@ app.post('/login', (req, res) => {
         return res.status(400).json({ erro: 'Preencha o email e a senha para entrar.' });
     }
 
-    // 1. Busca o skatista pelo email
     const sql = 'SELECT * FROM skatistas WHERE email = ?';
     
     db.query(sql, [email], async (erro, resultados) => {
@@ -167,7 +253,6 @@ app.post('/login', (req, res) => {
             return res.status(500).json({ erro: 'Erro interno no banco de dados.' });
         }
 
-        // 2. Se o email não existir no banco
         if (resultados.length === 0) {
             return res.status(401).json({ erro: 'Email ou senha incorretos.' });
         }
@@ -175,25 +260,20 @@ app.post('/login', (req, res) => {
         const skatista = resultados[0];
 
         try {
-            // 3. Compara a senha digitada com a senha criptografada (bcrypt) do banco
             const senhaValida = await bcrypt.compare(senha, skatista.senha);
             
             if (!senhaValida) {
                 return res.status(401).json({ erro: 'Email ou senha incorretos.' });
             }
 
-            // 4. Cria o Token JWT (A pulseira VIP do usuário)
-            // A chave secreta 'chave_secreta_sk8' pode ser qualquer texto complexo depois.
             const token = jwt.sign(
                 { id: skatista.id, email: skatista.email }, 
-                'chave_secreta_sk8', 
-                { expiresIn: '7d' } // O login dura 7 dias
+                JWT_SECRET, 
+                { expiresIn: '7d' }
             );
 
-            // 5. Remove a senha dos dados antes de mandar pro frontend por segurança
             delete skatista.senha;
 
-            // 6. Devolve o sucesso em JSON perfeito!
             res.status(200).json({
                 mensagem: 'Login aprovado! Bem-vindo de volta.',
                 token: token,
@@ -211,50 +291,26 @@ app.post('/login', (req, res) => {
 // SISTEMA DE USUÁRIOS E AUTENTICAÇÃO
 // ==========================================
 app.post('/skatistas', upload.single('foto_perfil'), async (req, res) => {
-    // Pegamos os dados e garantimos valores padrão caso venham vazios/undefined do FormData
     const { 
-        nome_completo, 
-        email, 
-        senha, 
-        apelido = '', 
-        cidade_estado = '', 
-        base = 'Regular', 
-        modalidade = '', 
-        nivel_atual = '', 
-        instagram_arroba = '', 
-        video_destaque = '', 
-        tamanho_shape = '', 
-        marca_truck_favorita = '', 
-        biografia = '' 
+        nome_completo, email, senha, apelido = '', cidade_estado = '', 
+        base = 'Regular', modalidade = '', nivel_atual = '', instagram_arroba = '', 
+        video_destaque = '', tamanho_shape = '', marca_truck_favorita = '', biografia = '' 
     } = req.body;
     
-    // Validação básica de segurança
     if (!senha || !email || !nome_completo) {
         return res.status(400).json({ erro: 'Preencha os campos obrigatórios (Email, Senha, Nome Completo).' });
     }
 
-    // Se o Multer salvou o arquivo físico, guardamos o caminho web. Senão, fica null.
-    const foto_perfil_url = req.file ? `/uploads/${req.file.filename}` : null;
+    const foto_perfil_url = req.file ? `/uploads/${req.file.filename}` : (req.body.foto_perfil || null);
 
     try {
         const senhaCriptografada = await bcrypt.hash(senha, 10);
         const sql = `INSERT INTO skatistas (nome_completo, email, senha, apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, foto_perfil, biografia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
         
         db.query(sql, [
-            nome_completo, 
-            email, 
-            senhaCriptografada, 
-            apelido, 
-            cidade_estado, 
-            base, 
-            modalidade, 
-            nivel_atual, 
-            instagram_arroba, 
-            video_destaque, 
-            tamanho_shape, 
-            marca_truck_favorita, 
-            foto_perfil_url, 
-            biografia
+            nome_completo, email, senhaCriptografada, apelido, cidade_estado, base, 
+            modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, 
+            marca_truck_favorita, foto_perfil_url, biografia
         ], (erro) => {
             if (erro) {
                 console.error("🔥 ERRO MYSQL NO CADASTRO:", erro);
@@ -263,13 +319,14 @@ app.post('/skatistas', upload.single('foto_perfil'), async (req, res) => {
                 }
                 return res.status(500).json({ erro: 'Falha ao salvar no banco.', detalhes: erro.message });
             }
-            res.status(201).json({ mensagem: 'Skatista registado com sucesso!' });
+            res.status(201).json({ mensagem: 'Skatista registrado com sucesso!' });
         });
     } catch (erroGeral) {
         console.error("🔥 ERRO NO BCRYPT/SERVIDOR:", erroGeral);
         res.status(500).json({ erro: 'Erro interno ao processar o cadastro.', detalhes: erroGeral.message });
     }
 });
+
 // ==========================================
 // MIDDLEWARE: O "SEGURANÇA" DAS ROTAS
 // ==========================================
@@ -278,11 +335,10 @@ function verificarToken(req, res, next) {
     if (!token) return res.status(403).json({ erro: "Acesso negado. Faça login." });
 
     if (token.startsWith('Bearer ')) {
-        token = token.slice(7, token.length).trimLeft();
+        token = token.slice(7).trimStart();
     }
 
-    // CORREÇÃO: A chave deve ser a MESMA usada no login!
-    jwt.verify(token, 'chave_secreta_sk8', (erro, decoded) => {
+    jwt.verify(token, JWT_SECRET, (erro, decoded) => {
         if (erro) return res.status(401).json({ erro: "Sessão expirada ou inválida." });
         req.userId = decoded.id; 
         next(); 
@@ -303,21 +359,18 @@ app.post('/picos', verificarToken, (req, res) => {
     });
 });
 
-// CORREÇÃO: Rota atualizada para usar o Multer e salvar o arquivo físico
 app.post('/midias', verificarToken, upload.single('arquivo'), (req, res) => {
-    const { legenda, tipo = 'imagem' } = req.body;
+    const { legenda = '', tipo = 'imagem', url_video = null, arquivo_base64 = null } = req.body;
     const skatista_id = req.userId; 
     
-    // Se o Multer salvou, pegamos a URL. Se não tem arquivo, devolvemos erro.
-    if (!req.file) {
-        return res.status(400).json({ erro: 'Você precisa enviar uma imagem ou vídeo para postar!' });
+    const midiaFinal = req.file ? `/uploads/${req.file.filename}` : arquivo_base64;
+
+    if (!midiaFinal && !url_video) {
+        return res.status(400).json({ erro: 'Você precisa enviar uma imagem ou link de vídeo para postar!' });
     }
     
-    const url_arquivo = `/uploads/${req.file.filename}`;
-    
-    // Inserindo o caminho web da foto na coluna arquivo_base64 (ou mude o nome da coluna no banco depois)
-    const sql = 'INSERT INTO midias (skatista_id, tipo, arquivo_base64, legenda) VALUES (?, ?, ?, ?)';
-    db.query(sql, [skatista_id, tipo, url_arquivo, legenda], (erro, resultados) => {
+    const sql = 'INSERT INTO midias (skatista_id, tipo, arquivo_base64, url_video, legenda) VALUES (?, ?, ?, ?, ?)';
+    db.query(sql, [skatista_id, tipo, midiaFinal, url_video, legenda], (erro, resultados) => {
         if (erro) {
             console.error("🔥 Erro ao salvar postagem no banco:", erro);
             return res.status(500).json({ erro: 'Falha ao salvar a mídia.' });
@@ -345,17 +398,19 @@ app.post('/midias/:id/comentarios', verificarToken, (req, res) => {
     });
 });
 
-app.put('/skatistas/:id', verificarToken, (req, res) => {
+app.put('/skatistas/:id', verificarToken, upload.single('foto_perfil'), (req, res) => {
     const idSkatista = req.params.id;
     
-    if (req.userId !== parseInt(idSkatista)) {
+    if (req.userId !== parseInt(idSkatista, 10)) {
         return res.status(403).json({ erro: 'Você não tem permissão para alterar este perfil.' });
     }
 
     const { apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, foto_perfil, biografia } = req.body;
+    const novaFoto = req.file ? `/uploads/${req.file.filename}` : foto_perfil;
+
     const sql = `UPDATE skatistas SET apelido=?, cidade_estado=?, base=?, modalidade=?, nivel_atual=?, instagram_arroba=?, video_destaque=?, tamanho_shape=?, marca_truck_favorita=?, foto_perfil=?, biografia=? WHERE id=?`;
 
-    db.query(sql, [apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, foto_perfil, biografia, idSkatista], (erro) => {
+    db.query(sql, [apelido, cidade_estado, base, modalidade, nivel_atual, instagram_arroba, video_destaque, tamanho_shape, marca_truck_favorita, novaFoto, biografia, idSkatista], (erro) => {
         if (erro) return res.status(500).json({ erro: 'Falha ao atualizar o perfil.' });
         res.json({ mensagem: 'Perfil atualizado com sucesso! 🛹' });
     });
@@ -382,7 +437,7 @@ app.post('/marcas', verificarToken, (req, res) => {
     const sql = `INSERT INTO marcas (nome_marca, segmento, instagram_marca, site_url, email_contato, descricao_marca, logo_marca) VALUES (?, ?, ?, ?, ?, ?, ?)`;
     db.query(sql, [nome_marca, segmento, instagram_marca, site_url, email_contato, descricao_marca, logo_marca], (erro) => {
         if (erro) return res.status(500).json({ erro: 'Falha ao salvar a marca.' });
-        res.status(201).json({ mensagem: 'Marca registada com sucesso no Ecossistema!' });
+        res.status(201).json({ mensagem: 'Marca registrada com sucesso no Ecossistema!' });
     });
 });
 
@@ -390,5 +445,5 @@ app.post('/marcas', verificarToken, (req, res) => {
 // INICIALIZAÇÃO DO SERVIDOR
 // ==========================================
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Instoke API no ar na porta ${PORT} 🔥`);
+    console.log(`Instoke API no ar na porta ${PORT} 🔥`);
 });

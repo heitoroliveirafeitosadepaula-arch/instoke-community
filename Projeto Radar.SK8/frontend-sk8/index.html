@@ -399,7 +399,11 @@
     </main>
 
     <script>
-       const API_URL = "http://localhost:3000";
+       // Troque: const API_URL = "http://localhost:3000";
+// Por esta linha inteligente (funciona em localhost, no Docker e pelo IP no celular):
+const API_URL = window.location.origin.includes('3000') 
+    ? window.location.origin 
+    : "http://localhost:3000";
 
 // CONTROLE DO MENU HAMBÚRGUER
 function toggleMenu() {
